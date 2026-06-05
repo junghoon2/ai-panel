@@ -32,7 +32,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "npm run build 2>&1 | tail -5 && echo BUILD_OK",
+    "buildCommand": "npm run build 2>&1 | tail -3 && echo BUILD_OK\ntmux kill-session -t aipanel-all 2>/dev/null; tmux new-session -d -s aipanel-all -x 150 -y 35 'node /Users/jerry/private/ai-panel/dist/index.js'\nsleep 2\n# 오류 케이스 1: 답변 전 리뷰\ntmux send-keys -t aipanel-all -l \"/review claude gemini\" && sleep 0.3 && tmux send-keys -t aipanel-all Enter && sleep 1\necho \"=== 답변 전 리뷰 ===\" && tmux capture-pane -t aipanel-all -p | sed -n '2p'\n# 오류 케이스 2: 알 수 없는 명령\ntmux send-keys -t aipanel-all -l \"/foo bar\" && sleep 0.3 && tmux send-keys -t aipanel-all Enter && sleep 1\necho \"=== 알 수 없는 명령 ===\" && tmux capture-pane -t aipanel-all -p | sed -n '2p'",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": "npm run start",
@@ -90,20 +90,26 @@
   "hotPaths": [
     {
       "path": "src/app.tsx",
-      "accessCount": 17,
-      "lastAccessed": 1780649908430,
+      "accessCount": 20,
+      "lastAccessed": 1780650052670,
       "type": "file"
     },
     {
       "path": "docs/progress.md",
-      "accessCount": 7,
-      "lastAccessed": 1780650029471,
+      "accessCount": 9,
+      "lastAccessed": 1780650151609,
       "type": "file"
     },
     {
       "path": "src/orchestrator.ts",
       "accessCount": 4,
       "lastAccessed": 1780649751074,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 3,
+      "lastAccessed": 1780650065800,
       "type": "file"
     },
     {
@@ -134,12 +140,6 @@
       "path": "src/adapters/gemini.ts",
       "accessCount": 2,
       "lastAccessed": 1780648197508,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 2,
-      "lastAccessed": 1780649365463,
       "type": "file"
     },
     {

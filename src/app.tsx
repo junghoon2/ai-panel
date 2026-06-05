@@ -5,7 +5,13 @@
 import { Box, Text, useApp, useStdout } from 'ink';
 import { useEffect, useRef, useState } from 'react';
 import type { AdapterName } from './adapters/types.js';
-import { runQuestion, runTasks, type RunHandlers, type SessionMap } from './orchestrator.js';
+import {
+  runQuestion,
+  runTasks,
+  type AgentTask,
+  type RunHandlers,
+  type SessionMap,
+} from './orchestrator.js';
 import { buildReviewPrompt, parseReviewCommand } from './review.js';
 import { Panel, type PanelState } from './components/panel.js';
 import { PromptInput } from './components/prompt-input.js';
@@ -98,7 +104,30 @@ export function App({ tools, missing, initialQuestion }: Props) {
       return;
     }
     if (cmd.kind === 'all') {
-      setNotice('/review all 은 아직 지원하지 않습니다.'); // Phase 3 에서 구현
+      // 각 도구가 나머지 도구들의 답변을 교차 리뷰 (답변 없는 도구는 대상에서 제외)
+      const tasks: AgentTask[] = [];
+      for (const reviewer of activeTools) {
+        const targets = activeTools
+          .filter((t) => t !== reviewer)
+          .map((t) => ({ name: t, answer: lastAnswersRef.current[t] }))
+          .filter((t): t is { name: AdapterName; answer: string } => Boolean(t.answer));
+        if (targets.length > 0) {
+          tasks.push({
+            name: reviewer,
+            question: buildReviewPrompt(lastUserQuestionRef.current, targets),
+          });
+        }
+      }
+      if (tasks.length === 0) {
+        setNotice('리뷰할 답변이 없습니다. 먼저 질문을 보내세요.');
+        return;
+      }
+
+      setNotice('');
+      setHeader('리뷰: all (교차 리뷰)');
+      setBusy(true);
+      runTasks(tasks, sessionsRef.current, makeHandlers(false));
+      forceRender();
       return;
     }
 
@@ -137,6 +166,12 @@ export function App({ tools, missing, initialQuestion }: Props) {
 
     if (question === '/review' || question.startsWith('/review ')) {
       handleReview(question);
+      return;
+    }
+
+    // 오타 등 알 수 없는 슬래시 명령이 질문으로 전송되는 것 방지
+    if (question.startsWith('/')) {
+      setNotice(`알 수 없는 명령: ${question.split(/\s+/)[0]} — 사용 가능: /review, /exit`);
       return;
     }
 
