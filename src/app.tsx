@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AdapterName } from './adapters/types.js';
 import { runTasks, type AgentTask, type RunHandlers, type SessionMap } from './orchestrator.js';
 import { buildReviewPrompt, parseReviewCommand } from './review.js';
+import { extractImagePaths } from './image.js';
 import { Panel, type PanelState } from './components/panel.js';
 import { PromptInput } from './components/prompt-input.js';
 import { HistoryBlock, type HistoryEntry } from './components/history.js';
@@ -185,10 +186,16 @@ export function App({ tools, missing, initialQuestion }: Props) {
       return;
     }
 
-    lastUserQuestionRef.current = question;
+    // 질문에 이미지 파일 경로가 있으면 분리해 도구별 네이티브 방식으로 첨부한다
+    const { question: text, images } = extractImagePaths(question);
+    // 이미지만 던진 경우 기본 지시문을 붙인다
+    const finalText = text || (images.length > 0 ? '첨부한 이미지를 설명해줘' : '');
+    if (!finalText) return;
+
+    lastUserQuestionRef.current = finalText;
     startTurn(
-      `질문: ${question}`,
-      activeTools.map((name) => ({ name, question })),
+      `질문: ${finalText}${images.length > 0 ? ` (이미지 ${images.length}장)` : ''}`,
+      activeTools.map((name) => ({ name, question: finalText, images })),
       true,
     );
   };

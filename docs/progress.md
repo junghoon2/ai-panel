@@ -79,3 +79,4 @@
 - 2026-06-05: gemini 영어 응답 수정 (첫 턴 언어 지시), 종료 명령 /exit 통일.
 - 2026-06-05: 교차 리뷰 기능 Phase 1~3 구현·검증 완료 (/review <리뷰어> <대상>, /review all). 완료 기준 4개 항목 모두 충족.
 - 2026-06-06: 응답 지연 실측 분석 → claude 훅/MCP 생략, gemini 모델 고정 적용. 이어서 claude 상시 유지 워커 도입 (stream-json 입력 모드, 앱 시작 시 prewarm): claude 턴 2.9~4s → ~1.5s. 종료 시 워커 미정리 누수 발견·수정 (waitUntilExit 후 dispose).
+- 2026-06-06: 이미지 동시 입력 기능 추가 — 질문 텍스트에서 이미지 경로 자동 감지(src/image.ts, 드래그&드롭 "\ " 이스케이프·따옴표·~ 지원), 도구별 네이티브 첨부(claude base64 블록 / codex -i -- / gemini @경로+--include-directories). 빨간 PNG 테스트로 3개 도구 모두 정답 확인. claude 어댑터 외부 인터페이스가 images 인자를 누락하는 버그 발견·수정.

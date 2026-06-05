@@ -18,9 +18,10 @@ export interface Adapter {
   /**
    * 질문 1건을 전송하고 이벤트 스트림을 돌려준다.
    * sessionId 가 있으면 해당 세션을 이어서(resume) 질문한다.
+   * images 는 도구별 네이티브 방식으로 첨부한다.
    * 스트림은 반드시 done 또는 error 로 끝난다 (throw 하지 않음).
    */
-  ask(question: string, sessionId?: string): AsyncGenerator<AdapterEvent>;
+  ask(question: string, sessionId?: string, images?: string[]): AsyncGenerator<AdapterEvent>;
   /** 앱 시작 시 미리 기동할 수 있는 도구의 사전 준비 (상시 유지 워커 등, 선택) */
   prewarm?(): void;
   /** 앱 종료 시 상시 워커 등 보유 자원 정리 (선택) */

@@ -48,6 +48,7 @@ ai-panel --only claude,gemini     # 선택한 도구만 사용
 |------|------|
 | 텍스트 + Enter | 3개 도구에 동시 질문 |
 | 후속 질문 | 각 도구의 **대화 맥락이 유지**된 상태로 질문 (resume) |
+| 질문 + 이미지 경로 | 경로(.png/.jpg/.jpeg/.gif/.webp)를 자동 감지해 3개 도구에 이미지 첨부. 스크린샷 파일을 터미널에 드래그&드롭하면 됨 |
 | `/review <리뷰어> <대상>` | 리뷰어가 대상 도구의 답변을 리뷰 (예: `/review claude gemini`) |
 | `/review all` | 각 도구가 나머지 도구들의 답변을 교차 리뷰 (3패널 동시) |
 | `/exit` (별칭: `/quit`, `/q`) | 종료 |
@@ -70,6 +71,7 @@ ai-panel --only claude,gemini     # 선택한 도구만 사용
 
 - claude 는 토큰 단위로 스트리밍되고, codex 는 답변이 한 번에 도착한다 (CLI 출력 특성)
 - claude 워커는 사용자 훅·MCP 로드를 생략하고, gemini 는 auto 라우터 대신 모델을 고정해 응답 지연을 줄였다
+- 이미지 첨부는 도구별 네이티브 방식 사용: claude 는 base64 image 블록, codex 는 `-i <경로> --`, gemini 는 `@경로` + `--include-directories`
 - gemini 의 resume 은 세션 id 가 아닌 같은 디렉토리의 최근 세션(latest) 기반
 - 도구별 안전망 타임아웃: 120초
 

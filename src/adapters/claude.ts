@@ -13,10 +13,12 @@
 // 워커가 죽으면(크래시/타임아웃 kill) 다음 질문에서 마지막 session_id 로
 // --resume 해 대화 맥락을 복구한 새 워커를 띄운다.
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import type { Adapter, AdapterEvent } from './types.js';
 import { errorMessage } from './types.js';
 import { DEFAULT_TIMEOUT_MS } from './proc.js';
+import { imageMimeType } from '../image.js';
 
 const BASE_ARGS = [
   '-p',
@@ -68,7 +70,7 @@ class ClaudeWorker {
     this.child = undefined;
   }
 
-  async *ask(question: string, sessionId?: string): AsyncGenerator<AdapterEvent> {
+  async *ask(question: string, sessionId?: string, images?: string[]): AsyncGenerator<AdapterEvent> {
     try {
       this.start(sessionId);
       const child = this.child;
@@ -78,11 +80,19 @@ class ClaudeWorker {
         return;
       }
 
+      // 이미지는 base64 image 블록으로 텍스트 앞에 첨부한다
+      const content: unknown[] = (images ?? []).map((path) => ({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: imageMimeType(path),
+          data: readFileSync(path).toString('base64'),
+        },
+      }));
+      content.push({ type: 'text', text: question });
+
       child.stdin.write(
-        JSON.stringify({
-          type: 'user',
-          message: { role: 'user', content: [{ type: 'text', text: question }] },
-        }) + '\n',
+        JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n',
       );
 
       let sawDelta = false;
@@ -160,5 +170,5 @@ export const claudeAdapter: Adapter = {
   // 워커의 파이프 핸들이 이벤트 루프를 잡고 있어, 종료 시 명시적으로 정리해야
   // 부모 프로세스가 빠진다 (정리 안 하면 /exit 후에도 프로세스가 남는다)
   dispose: () => worker.kill(),
-  ask: (question, sessionId) => worker.ask(question, sessionId),
+  ask: (question, sessionId, images) => worker.ask(question, sessionId, images),
 };

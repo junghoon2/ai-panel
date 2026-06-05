@@ -15,11 +15,13 @@ import { spawnJsonl } from './proc.js';
 export const codexAdapter: Adapter = {
   name: 'codex',
 
-  async *ask(question: string, sessionId?: string): AsyncGenerator<AdapterEvent> {
+  async *ask(question: string, sessionId?: string, images?: string[]): AsyncGenerator<AdapterEvent> {
     // 옵션은 exec 바로 뒤, resume 은 서브커맨드로 이어붙인다
     const args = ['exec', '--json', '--skip-git-repo-check'];
     if (sessionId) args.push('resume', sessionId);
-    args.push(question);
+    // -i 는 가변 인자라 프롬프트를 삼키지 않도록 '--' 구분자가 필수다 (실측)
+    for (const path of images ?? []) args.push('-i', path);
+    args.push('--', question);
 
     let sid = sessionId;
 

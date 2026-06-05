@@ -19,6 +19,8 @@ export interface RunHandlers {
 export interface AgentTask {
   name: AdapterName;
   question: string;
+  /** 첨부할 이미지 파일 경로 (도구별 네이티브 방식으로 전달됨) */
+  images?: string[];
 }
 
 export function runTasks(tasks: AgentTask[], sessions: SessionMap, h: RunHandlers): void {
@@ -28,11 +30,11 @@ export function runTasks(tasks: AgentTask[], sessions: SessionMap, h: RunHandler
     if (remaining === 0) h.onAllSettled();
   };
 
-  for (const { name, question } of tasks) {
+  for (const { name, question, images } of tasks) {
     void (async () => {
       h.onStart(name);
       try {
-        for await (const ev of adapters[name].ask(question, sessions[name])) {
+        for await (const ev of adapters[name].ask(question, sessions[name], images)) {
           if (ev.type === 'delta') {
             h.onDelta(name, ev.text ?? '');
           } else if (ev.type === 'done') {
