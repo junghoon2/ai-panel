@@ -15,19 +15,20 @@ export interface RunHandlers {
   onAllSettled(): void;
 }
 
-export function runQuestion(
-  names: AdapterName[],
-  question: string,
-  sessions: SessionMap,
-  h: RunHandlers,
-): void {
-  let remaining = names.length;
+/** 도구별로 서로 다른 프롬프트를 보낼 수 있는 실행 단위 (교차 리뷰 등) */
+export interface AgentTask {
+  name: AdapterName;
+  question: string;
+}
+
+export function runTasks(tasks: AgentTask[], sessions: SessionMap, h: RunHandlers): void {
+  let remaining = tasks.length;
   const settle = () => {
     remaining -= 1;
     if (remaining === 0) h.onAllSettled();
   };
 
-  for (const name of names) {
+  for (const { name, question } of tasks) {
     void (async () => {
       h.onStart(name);
       try {
@@ -48,4 +49,18 @@ export function runQuestion(
       settle();
     })();
   }
+}
+
+/** 같은 질문을 여러 도구에 fan-out 하는 기본 경로 */
+export function runQuestion(
+  names: AdapterName[],
+  question: string,
+  sessions: SessionMap,
+  h: RunHandlers,
+): void {
+  runTasks(
+    names.map((name) => ({ name, question })),
+    sessions,
+    h,
+  );
 }

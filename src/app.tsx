@@ -36,11 +36,16 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [lastQuestion, setLastQuestion] = useState('');
+  const [notice, setNotice] = useState(''); // 명령 피드백 (오류·안내) 표시줄
   const [, setTick] = useState(0); // 강제 리렌더용
   const forceRender = () => setTick((t) => t + 1);
 
   const panelsRef = useRef<Record<string, PanelState>>(initialPanels(tools, missing));
   const sessionsRef = useRef<SessionMap>({}); // 도구별 resume 세션 (2번째 질문부터 사용)
+
+  // 교차 리뷰용 — 마지막 "일반 질문" 턴의 질문과 도구별 답변 (리뷰 턴은 갱신하지 않음)
+  const lastUserQuestionRef = useRef('');
+  const lastAnswersRef = useRef<Partial<Record<AdapterName, string>>>({});
 
   // 질문을 실제로 보낼 도구 (미설치 제외)
   const activeTools = tools.filter((t) => !missing.includes(t));
@@ -68,8 +73,10 @@ export function App({ tools, missing, initialQuestion }: Props) {
     }
 
     setInput('');
+    setNotice('');
     setLastQuestion(question);
     setBusy(true);
+    lastUserQuestionRef.current = question;
 
     runQuestion(activeTools, question, sessionsRef.current, {
       onStart: (name) => {
@@ -82,6 +89,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
         const p = panelsRef.current[name];
         p.status = 'done';
         p.elapsedMs = Date.now() - (p.startedAt ?? Date.now());
+        lastAnswersRef.current[name as AdapterName] = p.text; // 리뷰 대상으로 저장
       },
       onError: (name, error) => {
         const p = panelsRef.current[name];
@@ -101,7 +109,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const rows = stdout?.rows ?? 24;
   // 패널 내부 표시 영역 계산 (테두리/패딩 근사 보정)
   const panelInnerWidth = Math.max(10, Math.floor(cols / tools.length) - 4);
-  const panelInnerLines = Math.max(3, rows - 8); // 헤더1 + 입력3 + 패널 테두리2 + 상태줄1 + 여유1
+  const panelInnerLines = Math.max(3, rows - 9); // 헤더1 + notice1 + 입력3 + 패널 테두리2 + 상태줄1 + 여유1
 
   return (
     <Box flexDirection="column" width={cols} height={rows - 1}>
@@ -113,6 +121,9 @@ export function App({ tools, missing, initialQuestion }: Props) {
           {lastQuestion ? `질문: ${lastQuestion}` : '질문을 입력하세요 (/exit 종료)'}
         </Text>
       </Text>
+
+      {/* 레이아웃 흔들림 방지를 위해 notice 줄은 항상 자리를 차지한다 */}
+      <Text color="yellow">{notice || ' '}</Text>
 
       <Box flexGrow={1}>
         {tools.map((t) => (
