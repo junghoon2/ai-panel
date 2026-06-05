@@ -48,6 +48,31 @@
 
 ---
 
+## 교차 리뷰 기능 진행 상태
+> 계획 문서: `docs/cross-review-plan.md`
+
+### Phase 1 — 기반 작업 (orchestrator 일반화 + 상태 저장)
+- [ ] orchestrator에 runTasks 추가, runQuestion은 래퍼로 전환
+- [ ] lastUserQuestion / lastAnswers 저장 (일반 턴 done 시점만)
+- [ ] notice 줄 추가 (명령 피드백용)
+- [ ] 검증: 기존 질문/후속 질문/종료 플로우 회귀 확인
+
+### Phase 2 — /review <리뷰어> <대상> 단일 리뷰
+- [ ] /review 명령 파싱 + 유효성 검증 (parseCommand 분리)
+- [ ] 리뷰 프롬프트 빌더 (src/review.ts)
+- [ ] 리뷰어 패널만 실행 (세션 resume, lastAnswers 갱신 제외)
+- [ ] 리뷰 중 헤더 표시 (리뷰: 리뷰어 ← 대상)
+- [ ] 검증: 질문 → /review claude gemini → 리뷰 표시·원본 유지·후속 질문 정상
+
+### Phase 3 — /review all + 마감
+- [ ] /review all 교차 리뷰 (3패널 동시)
+- [ ] 답변 없는 도구 제외 + notice 안내
+- [ ] 오류 케이스 정리 (인자 부족, 알 수 없는 도구, 답변 전 실행)
+- [ ] README 사용법 갱신
+- [ ] 검증: E2E — /review all 교차 리뷰 + 오류 명령 notice 확인
+
+---
+
 ## 세션 로그
 - 2026-06-05: 계획 수립 (docs/ai-panel-plan.md 작성). CLI 3종 설치·옵션 확인 완료 (claude 2.1.165, codex 0.137.0, gemini 0.37.0).
 - 2026-06-05: Phase 1~5 전체 구현·검증 완료. 계획의 완료 기준 4개 항목 모두 충족 (3분할 스트리밍, 세션 연속성, 부분 실패 허용, 글로벌 명령). 테스트용 tmux를 brew로 설치함. 리모트 레포 없음 — push 미수행.
