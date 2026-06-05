@@ -89,6 +89,12 @@
   },
   "hotPaths": [
     {
+      "path": "docs/progress.md",
+      "accessCount": 3,
+      "lastAccessed": 1780640338965,
+      "type": "file"
+    },
+    {
       "path": "src/components/prompt-input.tsx",
       "accessCount": 2,
       "lastAccessed": 1780640013083,
@@ -104,12 +110,6 @@
       "path": "src/components/panel.tsx",
       "accessCount": 2,
       "lastAccessed": 1780640092915,
-      "type": "file"
-    },
-    {
-      "path": "docs/progress.md",
-      "accessCount": 2,
-      "lastAccessed": 1780640212348,
       "type": "file"
     },
     {
