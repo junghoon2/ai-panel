@@ -61,7 +61,8 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const submit = (raw: string) => {
     const question = raw.trim();
     if (!question || busy) return;
-    if (question === '/quit' || question === '/q') {
+    // 기본 종료 명령은 /exit (claude 등과 통일), /quit·/q 는 별칭으로 유지
+    if (question === '/exit' || question === '/quit' || question === '/q') {
       exit();
       return;
     }
@@ -109,7 +110,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
           {' ai-panel '}
         </Text>
         <Text dimColor>
-          {lastQuestion ? `질문: ${lastQuestion}` : '질문을 입력하세요 (/quit 종료)'}
+          {lastQuestion ? `질문: ${lastQuestion}` : '질문을 입력하세요 (/exit 종료)'}
         </Text>
       </Text>
 

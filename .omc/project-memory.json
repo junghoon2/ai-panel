@@ -32,7 +32,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "npm run build >/dev/null 2>&1 && echo BUILD_OK && node dist/smoke.js gemini \"오늘 한국 주식 시황 간단히 요약해줘\" 2>&1 | tail -4",
+    "buildCommand": "npm run build >/dev/null 2>&1 && tmux kill-session -t aipanel-exit 2>/dev/null; tmux new-session -d -s aipanel-exit -x 100 -y 25 'ai-panel; echo \"APP_EXITED=$?\"; sleep 15' && sleep 2 && tmux capture-pane -t aipanel-exit -p | sed -n '1p' && tmux send-keys -t aipanel-exit -l \"/exit\" && sleep 0.3 && tmux send-keys -t aipanel-exit Enter && sleep 1.5 && tmux capture-pane -t aipanel-exit -p | grep APP_EXITED; tmux kill-session -t aipanel-exit 2>/dev/null; echo DONE",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": "npm run start",
@@ -90,8 +90,8 @@
   "hotPaths": [
     {
       "path": "src/app.tsx",
-      "accessCount": 5,
-      "lastAccessed": 1780640399085,
+      "accessCount": 7,
+      "lastAccessed": 1780649364318,
       "type": "file"
     },
     {
@@ -128,6 +128,12 @@
       "path": "src/adapters/gemini.ts",
       "accessCount": 2,
       "lastAccessed": 1780648197508,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 2,
+      "lastAccessed": 1780649365463,
       "type": "file"
     },
     {
@@ -170,12 +176,6 @@
       "path": "src/orchestrator.ts",
       "accessCount": 1,
       "lastAccessed": 1780639807449,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 1,
-      "lastAccessed": 1780640429250,
       "type": "file"
     }
   ],
