@@ -2,19 +2,14 @@
 //
 // 렌더링 전략: 델타마다 setState 하면 리렌더 폭주로 화면이 깜빡이므로,
 // 패널 상태는 ref 에 직접 누적하고 busy 동안 100ms 간격 tick 으로만 리렌더한다.
-import { Box, Text, useApp, useStdout } from 'ink';
+import { Box, Static, Text, useApp, useStdout } from 'ink';
 import { useEffect, useRef, useState } from 'react';
 import type { AdapterName } from './adapters/types.js';
-import {
-  runQuestion,
-  runTasks,
-  type AgentTask,
-  type RunHandlers,
-  type SessionMap,
-} from './orchestrator.js';
+import { runTasks, type AgentTask, type RunHandlers, type SessionMap } from './orchestrator.js';
 import { buildReviewPrompt, parseReviewCommand } from './review.js';
 import { Panel, type PanelState } from './components/panel.js';
 import { PromptInput } from './components/prompt-input.js';
+import { HistoryBlock, type HistoryEntry } from './components/history.js';
 
 interface Props {
   /** 패널로 표시할 전체 도구 (미설치 포함) */
@@ -44,6 +39,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const [busy, setBusy] = useState(false);
   const [header, setHeader] = useState(''); // 상단 표시 (질문: ... / 리뷰: ...)
   const [notice, setNotice] = useState(''); // 명령 피드백 (오류·안내) 표시줄
+  const [history, setHistory] = useState<HistoryEntry[]>([]); // 지나간 턴 (스크롤백 보존)
   const [, setTick] = useState(0); // 강제 리렌더용
   const forceRender = () => setTick((t) => t + 1);
 
@@ -96,6 +92,30 @@ export function App({ tools, missing, initialQuestion }: Props) {
     },
   });
 
+  // 현재 턴에 참여한 도구들 — 턴 보존 시 참여하지 않은 패널(이전 답변)이 중복 기록되는 것 방지
+  const currentTurnToolsRef = useRef<AdapterName[]>([]);
+
+  // 직전 턴을 히스토리로 보존 (Static 으로 스크롤백에 1회 출력됨)
+  const archivePreviousTurn = () => {
+    if (!header) return; // 첫 턴 전에는 보존할 것이 없다
+    const results = currentTurnToolsRef.current.map((name) => {
+      const p = panelsRef.current[name];
+      return { name, text: p.text, error: p.error, elapsedMs: p.elapsedMs };
+    });
+    if (results.length > 0) setHistory((h) => [...h, { header, results }]);
+  };
+
+  // 직전 턴 보존 → 새 턴 시작 공통 경로
+  const startTurn = (headerText: string, tasks: AgentTask[], recordAnswers: boolean) => {
+    archivePreviousTurn();
+    currentTurnToolsRef.current = tasks.map((t) => t.name);
+    setNotice('');
+    setHeader(headerText);
+    setBusy(true);
+    runTasks(tasks, sessionsRef.current, makeHandlers(recordAnswers));
+    forceRender();
+  };
+
   // /review <리뷰어> <대상> — 리뷰어 세션을 이어서 대상 답변을 리뷰
   const handleReview = (line: string) => {
     const cmd = parseReviewCommand(line, tools);
@@ -123,11 +143,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
         return;
       }
 
-      setNotice('');
-      setHeader('리뷰: all (교차 리뷰)');
-      setBusy(true);
-      runTasks(tasks, sessionsRef.current, makeHandlers(false));
-      forceRender();
+      startTurn('리뷰: all (교차 리뷰)', tasks, false);
       return;
     }
 
@@ -142,15 +158,9 @@ export function App({ tools, missing, initialQuestion }: Props) {
       return;
     }
 
-    setNotice('');
-    setHeader(`리뷰: ${reviewer} ← ${target}`);
-    setBusy(true);
-    runTasks(
-      [{ name: reviewer, question: buildReviewPrompt(lastUserQuestionRef.current, [{ name: target, answer }]) }],
-      sessionsRef.current,
-      makeHandlers(false),
-    );
-    forceRender();
+    startTurn(`리뷰: ${reviewer} ← ${target}`, [
+      { name: reviewer, question: buildReviewPrompt(lastUserQuestionRef.current, [{ name: target, answer }]) },
+    ], false);
   };
 
   const submit = (raw: string) => {
@@ -175,12 +185,12 @@ export function App({ tools, missing, initialQuestion }: Props) {
       return;
     }
 
-    setNotice('');
-    setHeader(`질문: ${question}`);
-    setBusy(true);
     lastUserQuestionRef.current = question;
-    runQuestion(activeTools, question, sessionsRef.current, makeHandlers(true));
-    forceRender();
+    startTurn(
+      `질문: ${question}`,
+      activeTools.map((name) => ({ name, question })),
+      true,
+    );
   };
 
   const cols = stdout?.columns ?? 80;
@@ -190,7 +200,13 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const panelInnerLines = Math.max(3, rows - 9); // 헤더1 + notice1 + 입력3 + 패널 테두리2 + 상태줄1 + 여유1
 
   return (
-    <Box flexDirection="column" width={cols} height={rows - 1}>
+    <>
+      {/* 지나간 턴은 Static 으로 스크롤백에 남는다 — 위로 스크롤하면 이전 대화 확인 가능 */}
+      <Static items={history}>
+        {(entry, index) => <HistoryBlock key={index} entry={entry} />}
+      </Static>
+
+      <Box flexDirection="column" width={cols} height={rows - 1}>
       <Text>
         <Text bold color="cyan">
           {' ai-panel '}
@@ -213,7 +229,8 @@ export function App({ tools, missing, initialQuestion }: Props) {
         ))}
       </Box>
 
-      <PromptInput value={input} disabled={busy} onChange={setInput} onSubmit={submit} />
-    </Box>
+        <PromptInput value={input} disabled={busy} onChange={setInput} onSubmit={submit} />
+      </Box>
+    </>
   );
 }
