@@ -32,7 +32,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "npm run build 2>&1 | tail -3 && echo BUILD_OK",
+    "buildCommand": "npm run build >/dev/null 2>&1 && echo BUILD_OK\nSID=$(node dist/smoke.js claude \"내 이름은 나나야. 한 단어로만 답해: 알겠지?\" 2>&1 | grep -o 'sessionId=[a-z0-9-]*' | cut -d= -f2) && echo \"turn1 sid=$SID\" && node dist/smoke.js claude \"내 이름이 뭐라고 했지? 이름만 답해.\" \"$SID\" 2>&1 | tail -2",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": "npm run start",
@@ -113,6 +113,12 @@
       "type": "file"
     },
     {
+      "path": "src/adapters/gemini.ts",
+      "accessCount": 3,
+      "lastAccessed": 1780697132932,
+      "type": "file"
+    },
+    {
       "path": "src/components/prompt-input.tsx",
       "accessCount": 2,
       "lastAccessed": 1780640013083,
@@ -137,9 +143,9 @@
       "type": "file"
     },
     {
-      "path": "src/adapters/gemini.ts",
+      "path": "src/adapters/claude.ts",
       "accessCount": 2,
-      "lastAccessed": 1780648197508,
+      "lastAccessed": 1780697130049,
       "type": "file"
     },
     {
@@ -152,12 +158,6 @@
       "path": "src/adapters/proc.ts",
       "accessCount": 1,
       "lastAccessed": 1780639634629,
-      "type": "file"
-    },
-    {
-      "path": "src/adapters/claude.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780639643221,
       "type": "file"
     },
     {

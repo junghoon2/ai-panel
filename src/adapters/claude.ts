@@ -15,7 +15,15 @@ export const claudeAdapter: Adapter = {
   name: 'claude',
 
   async *ask(question: string, sessionId?: string): AsyncGenerator<AdapterEvent> {
-    const args = ['-p', '--output-format', 'stream-json', '--include-partial-messages', '--verbose'];
+    const args = [
+      '-p',
+      '--output-format', 'stream-json',
+      '--include-partial-messages',
+      '--verbose',
+      // Q&A 패널에는 사용자 훅·MCP 서버가 불필요 — 로드 생략으로 턴당 ~1초 단축 (실측)
+      '--strict-mcp-config',
+      '--setting-sources', '',
+    ];
     if (sessionId) args.push('--resume', sessionId);
     args.push(question);
 

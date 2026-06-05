@@ -21,7 +21,10 @@ export const geminiAdapter: Adapter = {
     const prompt = sessionId
       ? question
       : `(지시: 반드시 사용자의 질문과 동일한 언어로 답변할 것)\n\n${question}`;
-    const args = ['-o', 'stream-json', '-p', prompt];
+    // 기본값(auto-gemini-3 라우터)은 모델 선택용 호출이 한 번 더 발생해 느리다.
+    // 라우터가 일반적으로 고르는 모델을 직접 고정해 턴당 ~4초 단축 (실측 14.6s → 10.4s).
+    // 모델 세대가 바뀌면 이 상수만 갱신하면 된다.
+    const args = ['-o', 'stream-json', '-m', 'gemini-3-flash-preview', '-p', prompt];
     // 세션 id 지정이 불가능하므로 직전 세션(latest)을 이어간다
     if (sessionId) args.push('--resume', 'latest');
 
