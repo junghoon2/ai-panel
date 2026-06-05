@@ -1,0 +1,28 @@
+{
+  "name": "ai-panel",
+  "version": "0.1.0",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "claude/codex/gemini에 한꺼번에 질문하고 답변을 비교하는 3분할 TUI",
+  "dependencies": {
+    "ink": "^7.0.5",
+    "react": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.16",
+    "typescript": "^6.0.3"
+  },
+  "type": "module",
+  "bin": {
+    "ai-panel": "dist/index.js"
+  }
+}

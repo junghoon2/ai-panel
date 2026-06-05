@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    // ESM 기반 (Ink 7은 ESM 전용)
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    // 소스는 src/ 하나에 모으고 빌드 산출물은 dist/ 로 분리
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

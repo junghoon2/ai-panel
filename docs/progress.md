@@ -6,11 +6,11 @@
 > 계획 문서: `docs/ai-panel-plan.md`
 
 ### Phase 1 — 프로젝트 스캐폴딩
-- [ ] npm init + TypeScript, Ink 5, React 의존성 설치
-- [ ] tsconfig.json, 빌드 스크립트 구성
-- [ ] 최소 Ink 앱 ("Hello ai-panel") 작성
-- [ ] git init + 첫 커밋 (개인 계정)
-- [ ] 검증: `npm run build && node dist/index.js` 실행 확인
+- [x] npm init + TypeScript, Ink, React 의존성 설치 (ink 7.0.5, react 19.2.7, ts 6.0.3 — 계획의 Ink 5 대신 최신 Ink 7 사용)
+- [x] tsconfig.json, 빌드 스크립트 구성 (소스는 `src/` 단일 디렉토리, 산출물은 `dist/`)
+- [x] 최소 Ink 앱 ("Hello ai-panel") 작성
+- [x] git init + 첫 커밋 (개인 계정)
+- [x] 검증: `npm run build && node dist/index.js` 실행 확인 (2026-06-05)
 
 ### Phase 2 — CLI 어댑터 레이어
 - [ ] 공통 어댑터 인터페이스 정의 (types.ts)
