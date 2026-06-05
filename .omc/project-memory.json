@@ -32,7 +32,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "npm run build >/dev/null 2>&1 && echo BUILD_OK\nSID=$(node dist/smoke.js claude \"내 이름은 나나야. 한 단어로만 답해: 알겠지?\" 2>&1 | grep -o 'sessionId=[a-z0-9-]*' | cut -d= -f2) && echo \"turn1 sid=$SID\" && node dist/smoke.js claude \"내 이름이 뭐라고 했지? 이름만 답해.\" \"$SID\" 2>&1 | tail -2",
+    "buildCommand": "npm run build >/dev/null 2>&1 && echo BUILD_OK\ntmux kill-session -t aipanel-x2 2>/dev/null; tmux new-session -d -s aipanel-x2 -x 80 -y 20 'node /Users/jerry/private/ai-panel/dist/index.js --only claude; echo \"APP_EXITED=$?\"; sleep 30'\nsleep 3 && echo \"기동 후 워커: $(pgrep -f 'claude -p --input-format stream-json' | wc -l | tr -d ' ')\"\ntmux send-keys -t aipanel-x2 -l \"/exit\" && sleep 0.3 && tmux send-keys -t aipanel-x2 Enter\nsleep 3 && echo \"종료 3초 후 워커: $(pgrep -f 'claude -p --input-format stream-json' | wc -l | tr -d ' ')\"\ntmux capture-pane -t aipanel-x2 -p | grep APP_EXITED\ntmux kill-session -t aipanel-x2 2>/dev/null; echo DONE",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": "npm run start",
@@ -96,8 +96,8 @@
     },
     {
       "path": "docs/progress.md",
-      "accessCount": 9,
-      "lastAccessed": 1780650151609,
+      "accessCount": 10,
+      "lastAccessed": 1780697637845,
       "type": "file"
     },
     {
@@ -107,15 +107,33 @@
       "type": "file"
     },
     {
+      "path": "src/adapters/claude.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780697583630,
+      "type": "file"
+    },
+    {
+      "path": "src/index.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1780697586932,
+      "type": "file"
+    },
+    {
       "path": "README.md",
-      "accessCount": 3,
-      "lastAccessed": 1780650065800,
+      "accessCount": 4,
+      "lastAccessed": 1780697627076,
       "type": "file"
     },
     {
       "path": "src/adapters/gemini.ts",
       "accessCount": 3,
       "lastAccessed": 1780697132932,
+      "type": "file"
+    },
+    {
+      "path": "src/adapters/types.ts",
+      "accessCount": 3,
+      "lastAccessed": 1780697577991,
       "type": "file"
     },
     {
@@ -134,24 +152,6 @@
       "path": "src/components/panel.tsx",
       "accessCount": 2,
       "lastAccessed": 1780640092915,
-      "type": "file"
-    },
-    {
-      "path": "src/index.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1780640377654,
-      "type": "file"
-    },
-    {
-      "path": "src/adapters/claude.ts",
-      "accessCount": 2,
-      "lastAccessed": 1780697130049,
-      "type": "file"
-    },
-    {
-      "path": "src/adapters/types.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780639621924,
       "type": "file"
     },
     {

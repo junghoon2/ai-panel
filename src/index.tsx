@@ -59,4 +59,12 @@ if (available.length === 0) {
   process.exit(1);
 }
 
-render(<App tools={selected} missing={missing} initialQuestion={initialQuestion} />);
+// 상시 유지 워커를 지원하는 도구는 미리 기동해 첫 질문 지연을 줄인다
+const { adapters } = await import('./adapters/index.js');
+for (const t of available) adapters[t].prewarm?.();
+
+const app = render(<App tools={selected} missing={missing} initialQuestion={initialQuestion} />);
+
+// /exit 등으로 언마운트되면 상시 워커를 정리해 프로세스가 정상 종료되게 한다
+await app.waitUntilExit();
+for (const t of available) adapters[t].dispose?.();

@@ -21,6 +21,10 @@ export interface Adapter {
    * 스트림은 반드시 done 또는 error 로 끝난다 (throw 하지 않음).
    */
   ask(question: string, sessionId?: string): AsyncGenerator<AdapterEvent>;
+  /** 앱 시작 시 미리 기동할 수 있는 도구의 사전 준비 (상시 유지 워커 등, 선택) */
+  prewarm?(): void;
+  /** 앱 종료 시 상시 워커 등 보유 자원 정리 (선택) */
+  dispose?(): void;
 }
 
 /** unknown 에러를 사용자 표시용 문자열로 변환 */

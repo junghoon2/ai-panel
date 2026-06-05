@@ -60,15 +60,16 @@ ai-panel --only claude,gemini     # 선택한 도구만 사용
 
 ## 동작 방식
 
-각 CLI를 **비대화형(print/exec) 모드**로 spawn 하고, 구조화된 스트림 출력을 파싱해 공통 이벤트로 정규화한다.
+각 CLI를 **비대화형(print/exec) 모드**로 실행하고, 구조화된 스트림 출력을 파싱해 공통 이벤트로 정규화한다.
 
-| 도구 | 호출 | 후속 질문 (세션 유지) |
+| 도구 | 방식 | 후속 질문 (세션 유지) |
 |------|------|----------------------|
-| claude | `claude -p --output-format stream-json --include-partial-messages` | `--resume <session-id>` |
-| codex | `codex exec --json --skip-git-repo-check` | `codex exec resume <session-id>` |
-| gemini | `gemini -p <질문> -o stream-json` | `--resume latest` |
+| claude | **상시 유지 워커** — `claude -p --input-format stream-json` 프로세스를 앱 시작 시 미리 띄워두고 stdin 으로 질문 전송 | 같은 프로세스 = 같은 세션 (워커 사망 시 `--resume` 으로 복구) |
+| codex | 질문마다 spawn — `codex exec --json --skip-git-repo-check` | `codex exec resume <session-id>` |
+| gemini | 질문마다 spawn — `gemini -p <질문> -o stream-json -m <모델 고정>` | `--resume latest` |
 
 - claude 는 토큰 단위로 스트리밍되고, codex 는 답변이 한 번에 도착한다 (CLI 출력 특성)
+- claude 워커는 사용자 훅·MCP 로드를 생략하고, gemini 는 auto 라우터 대신 모델을 고정해 응답 지연을 줄였다
 - gemini 의 resume 은 세션 id 가 아닌 같은 디렉토리의 최근 세션(latest) 기반
 - 도구별 안전망 타임아웃: 120초
 
