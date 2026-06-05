@@ -41,6 +41,20 @@ export function extractImagePaths(input: string): ImageExtraction {
   return { question: question.replace(/\s{2,}/g, ' ').trim(), images };
 }
 
+/**
+ * 입력창 표시용 — 감지된 이미지 경로를 [Image #N] 토큰으로 치환한다.
+ * (실제 입력값은 바꾸지 않고 화면 표시만 바꾼다)
+ */
+export function replaceImagePathsForDisplay(input: string): { display: string; count: number } {
+  let count = 0;
+  const display = input.replace(IMAGE_PATH_RE, (match) => {
+    if (!existsSync(normalizePath(match))) return match;
+    count += 1;
+    return `[Image #${count}]`;
+  });
+  return { display, count };
+}
+
 /** 확장자 기반 MIME 타입 (claude base64 블록용) */
 export function imageMimeType(path: string): string {
   const ext = path.toLowerCase().split('.').pop();
