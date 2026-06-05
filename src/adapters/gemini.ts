@@ -16,7 +16,12 @@ export const geminiAdapter: Adapter = {
   name: 'gemini',
 
   async *ask(question: string, sessionId?: string): AsyncGenerator<AdapterEvent> {
-    const args = ['-o', 'stream-json', '-p', question];
+    // gemini 는 한국어 질문에도 영어로 답하는 경우가 있어, 새 세션 첫 턴에
+    // 언어 지시를 붙인다 (세션 히스토리에 남으므로 후속 턴에는 불필요)
+    const prompt = sessionId
+      ? question
+      : `(지시: 반드시 사용자의 질문과 동일한 언어로 답변할 것)\n\n${question}`;
+    const args = ['-o', 'stream-json', '-p', prompt];
     // 세션 id 지정이 불가능하므로 직전 세션(latest)을 이어간다
     if (sessionId) args.push('--resume', 'latest');
 

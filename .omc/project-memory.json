@@ -32,7 +32,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "npm run build >/dev/null 2>&1 && echo BUILD_OK && npm link >/dev/null 2>&1 && which ai-panel && ai-panel --help; echo \"help_exit=$?\"; ai-panel --only foo 2>&1; echo \"invalid_exit=$?\"",
+    "buildCommand": "npm run build >/dev/null 2>&1 && echo BUILD_OK && node dist/smoke.js gemini \"오늘 한국 주식 시황 간단히 요약해줘\" 2>&1 | tail -4",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": "npm run start",
@@ -125,6 +125,12 @@
       "type": "file"
     },
     {
+      "path": "src/adapters/gemini.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780648197508,
+      "type": "file"
+    },
+    {
       "path": "src/adapters/types.ts",
       "accessCount": 1,
       "lastAccessed": 1780639621924,
@@ -146,12 +152,6 @@
       "path": "src/adapters/codex.ts",
       "accessCount": 1,
       "lastAccessed": 1780639651272,
-      "type": "file"
-    },
-    {
-      "path": "src/adapters/gemini.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780639660244,
       "type": "file"
     },
     {
