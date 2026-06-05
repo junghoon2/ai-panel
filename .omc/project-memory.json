@@ -32,7 +32,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "npm run build 2>&1 | tail -5 && echo BUILD_OK",
+    "buildCommand": "npm run build >/dev/null 2>&1 && tmux kill-session -t aipanel-test 2>/dev/null; tmux new-session -d -s aipanel-test -x 120 -y 30 'node /Users/jerry/private/ai-panel/dist/index.js' && sleep 2 && tmux send-keys -t aipanel-test -l \"EKS가 뭔지 두 문장으로 설명해줘\" && sleep 0.5 && tmux send-keys -t aipanel-test Enter && sleep 25 && tmux capture-pane -t aipanel-test -p | grep -v '^$' | head -14",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": "npm run start",
@@ -89,6 +89,30 @@
   },
   "hotPaths": [
     {
+      "path": "src/components/prompt-input.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780640013083,
+      "type": "file"
+    },
+    {
+      "path": "src/text.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780640090562,
+      "type": "file"
+    },
+    {
+      "path": "src/components/panel.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780640092915,
+      "type": "file"
+    },
+    {
+      "path": "docs/progress.md",
+      "accessCount": 2,
+      "lastAccessed": 1780640212348,
+      "type": "file"
+    },
+    {
       "path": "src/adapters/types.ts",
       "accessCount": 1,
       "lastAccessed": 1780639621924,
@@ -131,9 +155,21 @@
       "type": "file"
     },
     {
-      "path": "docs/progress.md",
+      "path": "src/orchestrator.ts",
       "accessCount": 1,
-      "lastAccessed": 1780639747710,
+      "lastAccessed": 1780639807449,
+      "type": "file"
+    },
+    {
+      "path": "src/app.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780639857844,
+      "type": "file"
+    },
+    {
+      "path": "src/index.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780639860304,
       "type": "file"
     }
   ],

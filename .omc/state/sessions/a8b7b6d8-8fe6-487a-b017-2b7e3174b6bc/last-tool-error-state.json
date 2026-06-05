@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"tmux new-session -d -s aipanel-test -x 100 -y 25 'node /Users/jerry/private/ai-panel/dist/index.js; echo \\\"APP_EXITED=$?\\\"' && sleep 2 && tmux send-keys -t aipanel-test -l \\\"/quit\\\" && sle...",
+  "error": "Exit code 1\nno server running on /private/tmp/tmux-501/default",
+  "timestamp": "2026-06-05T06:16:17.098Z",
+  "retry_count": 1
+}
