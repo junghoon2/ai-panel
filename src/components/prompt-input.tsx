@@ -8,6 +8,8 @@ interface Props {
   disabled: boolean;
   onChange(value: string): void;
   onSubmit(value: string): void;
+  /** Ctrl+V — 클립보드 이미지 붙여넣기 (Cmd+V 는 터미널이 가로채 앱에 전달되지 않음) */
+  onPasteImage(): void;
 }
 
 /** [Image #N] 토큰만 색을 입혀 렌더링 */
@@ -29,11 +31,15 @@ function InputDisplay({ value }: { value: string }) {
   );
 }
 
-export function PromptInput({ value, disabled, onChange, onSubmit }: Props) {
+export function PromptInput({ value, disabled, onChange, onSubmit, onPasteImage }: Props) {
   useInput((input, key) => {
     if (disabled) return;
     if (key.return) {
       onSubmit(value);
+      return;
+    }
+    if (key.ctrl && input === 'v') {
+      onPasteImage();
       return;
     }
     if (key.backspace || key.delete) {

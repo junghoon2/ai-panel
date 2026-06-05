@@ -165,6 +165,18 @@ export function App({ tools, missing, initialQuestion }: Props) {
     ], false);
   };
 
+  // Ctrl+V — 클립보드 이미지를 임시 파일로 꺼내 입력창에 경로로 삽입한다
+  // (경로는 입력창에서 [Image #N] 칩으로 표시되고, 제출 시 기존 감지 로직이 첨부한다)
+  const pasteClipboardImage = () => {
+    const image = clipboardImageToFile();
+    if (!image) {
+      setNotice('클립보드에 이미지가 없습니다. Cmd+Ctrl+Shift+4 로 캡처한 뒤 Ctrl+V 하세요.');
+      return;
+    }
+    setNotice('');
+    setInput((v) => `${v}${v && !v.endsWith(' ') ? ' ' : ''}${image} `);
+  };
+
   const submit = (raw: string) => {
     const question = raw.trim();
     if (!question || busy) return;
@@ -198,14 +210,17 @@ export function App({ tools, missing, initialQuestion }: Props) {
       return;
     }
 
+    // 질문에 이미지 파일 경로가 있으면 분리해 도구별 네이티브 방식으로 첨부한다
+    // (이미지 경로도 / 로 시작하므로 명령 오타 가드보다 먼저 처리해야 한다)
+    const { question: text, images } = extractImagePaths(question);
+
     // 오타 등 알 수 없는 슬래시 명령이 질문으로 전송되는 것 방지
-    if (question.startsWith('/')) {
-      setNotice(`알 수 없는 명령: ${question.split(/\s+/)[0]} — 사용 가능: /paste, /review, /exit`);
+    // — "/단어" 형태만 명령으로 간주 (경로는 / 가 더 포함되므로 해당 없음)
+    const firstToken = text.split(/\s+/)[0] ?? '';
+    if (/^\/\w+$/.test(firstToken)) {
+      setNotice(`알 수 없는 명령: ${firstToken} — 사용 가능: /paste, /review, /exit`);
       return;
     }
-
-    // 질문에 이미지 파일 경로가 있으면 분리해 도구별 네이티브 방식으로 첨부한다
-    const { question: text, images } = extractImagePaths(question);
     // 이미지만 던진 경우 기본 지시문을 붙인다
     const finalText = text || (images.length > 0 ? '첨부한 이미지를 설명해줘' : '');
     if (!finalText) return;
@@ -254,7 +269,13 @@ export function App({ tools, missing, initialQuestion }: Props) {
         ))}
       </Box>
 
-        <PromptInput value={input} disabled={busy} onChange={setInput} onSubmit={submit} />
+        <PromptInput
+          value={input}
+          disabled={busy}
+          onChange={setInput}
+          onSubmit={submit}
+          onPasteImage={pasteClipboardImage}
+        />
       </Box>
     </>
   );
