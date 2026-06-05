@@ -8,6 +8,7 @@ import type { AdapterName } from './adapters/types.js';
 import { runTasks, type AgentTask, type RunHandlers, type SessionMap } from './orchestrator.js';
 import { buildReviewPrompt, parseReviewCommand } from './review.js';
 import { extractImagePaths } from './image.js';
+import { clipboardImageToFile } from './clipboard.js';
 import { Panel, type PanelState } from './components/panel.js';
 import { PromptInput } from './components/prompt-input.js';
 import { HistoryBlock, type HistoryEntry } from './components/history.js';
@@ -180,9 +181,26 @@ export function App({ tools, missing, initialQuestion }: Props) {
       return;
     }
 
+    // /paste [질문] — 클립보드 이미지를 임시 파일로 꺼내 첨부 (파일 저장 없이)
+    if (question === '/paste' || question.startsWith('/paste ')) {
+      const image = clipboardImageToFile();
+      if (!image) {
+        setNotice('클립보드에 이미지가 없습니다. Cmd+Ctrl+Shift+4 로 캡처한 뒤 다시 시도하세요.');
+        return;
+      }
+      const text = question.slice('/paste'.length).trim() || '첨부한 이미지를 설명해줘';
+      lastUserQuestionRef.current = text;
+      startTurn(
+        `질문: ${text} (클립보드 이미지)`,
+        activeTools.map((name) => ({ name, question: text, images: [image] })),
+        true,
+      );
+      return;
+    }
+
     // 오타 등 알 수 없는 슬래시 명령이 질문으로 전송되는 것 방지
     if (question.startsWith('/')) {
-      setNotice(`알 수 없는 명령: ${question.split(/\s+/)[0]} — 사용 가능: /review, /exit`);
+      setNotice(`알 수 없는 명령: ${question.split(/\s+/)[0]} — 사용 가능: /paste, /review, /exit`);
       return;
     }
 
