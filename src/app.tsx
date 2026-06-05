@@ -5,7 +5,8 @@
 import { Box, Text, useApp, useStdout } from 'ink';
 import { useEffect, useRef, useState } from 'react';
 import type { AdapterName } from './adapters/types.js';
-import { runQuestion, type SessionMap } from './orchestrator.js';
+import { runQuestion, runTasks, type RunHandlers, type SessionMap } from './orchestrator.js';
+import { buildReviewPrompt, parseReviewCommand } from './review.js';
 import { Panel, type PanelState } from './components/panel.js';
 import { PromptInput } from './components/prompt-input.js';
 
@@ -35,7 +36,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
 
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [lastQuestion, setLastQuestion] = useState('');
+  const [header, setHeader] = useState(''); // 상단 표시 (질문: ... / 리뷰: ...)
   const [notice, setNotice] = useState(''); // 명령 피드백 (오류·안내) 표시줄
   const [, setTick] = useState(0); // 강제 리렌더용
   const forceRender = () => setTick((t) => t + 1);
@@ -63,6 +64,66 @@ export function App({ tools, missing, initialQuestion }: Props) {
     // eslint 없음 — 마운트 1회 실행 의도
   }, []);
 
+  // 공통 실행 핸들러 — 일반 질문 턴만 답변을 리뷰 대상(lastAnswers)으로 기록한다
+  const makeHandlers = (recordAnswers: boolean): RunHandlers => ({
+    onStart: (name) => {
+      panelsRef.current[name] = { status: 'running', text: '', startedAt: Date.now() };
+    },
+    onDelta: (name, text) => {
+      panelsRef.current[name].text += text;
+    },
+    onDone: (name) => {
+      const p = panelsRef.current[name];
+      p.status = 'done';
+      p.elapsedMs = Date.now() - (p.startedAt ?? Date.now());
+      if (recordAnswers) lastAnswersRef.current[name] = p.text;
+    },
+    onError: (name, error) => {
+      const p = panelsRef.current[name];
+      p.status = 'error';
+      p.error = error;
+      p.elapsedMs = Date.now() - (p.startedAt ?? Date.now());
+    },
+    onAllSettled: () => {
+      setBusy(false);
+      forceRender();
+    },
+  });
+
+  // /review <리뷰어> <대상> — 리뷰어 세션을 이어서 대상 답변을 리뷰
+  const handleReview = (line: string) => {
+    const cmd = parseReviewCommand(line, tools);
+    if (cmd.kind === 'error') {
+      setNotice(cmd.message);
+      return;
+    }
+    if (cmd.kind === 'all') {
+      setNotice('/review all 은 아직 지원하지 않습니다.'); // Phase 3 에서 구현
+      return;
+    }
+
+    const { reviewer, target } = cmd;
+    if (missing.includes(reviewer)) {
+      setNotice(`${reviewer} CLI 가 미설치라 리뷰어로 사용할 수 없습니다.`);
+      return;
+    }
+    const answer = lastAnswersRef.current[target];
+    if (!answer) {
+      setNotice(`${target} 의 답변이 없습니다. 먼저 질문을 보내세요.`);
+      return;
+    }
+
+    setNotice('');
+    setHeader(`리뷰: ${reviewer} ← ${target}`);
+    setBusy(true);
+    runTasks(
+      [{ name: reviewer, question: buildReviewPrompt(lastUserQuestionRef.current, [{ name: target, answer }]) }],
+      sessionsRef.current,
+      makeHandlers(false),
+    );
+    forceRender();
+  };
+
   const submit = (raw: string) => {
     const question = raw.trim();
     if (!question || busy) return;
@@ -73,35 +134,17 @@ export function App({ tools, missing, initialQuestion }: Props) {
     }
 
     setInput('');
+
+    if (question === '/review' || question.startsWith('/review ')) {
+      handleReview(question);
+      return;
+    }
+
     setNotice('');
-    setLastQuestion(question);
+    setHeader(`질문: ${question}`);
     setBusy(true);
     lastUserQuestionRef.current = question;
-
-    runQuestion(activeTools, question, sessionsRef.current, {
-      onStart: (name) => {
-        panelsRef.current[name] = { status: 'running', text: '', startedAt: Date.now() };
-      },
-      onDelta: (name, text) => {
-        panelsRef.current[name].text += text;
-      },
-      onDone: (name) => {
-        const p = panelsRef.current[name];
-        p.status = 'done';
-        p.elapsedMs = Date.now() - (p.startedAt ?? Date.now());
-        lastAnswersRef.current[name as AdapterName] = p.text; // 리뷰 대상으로 저장
-      },
-      onError: (name, error) => {
-        const p = panelsRef.current[name];
-        p.status = 'error';
-        p.error = error;
-        p.elapsedMs = Date.now() - (p.startedAt ?? Date.now());
-      },
-      onAllSettled: () => {
-        setBusy(false);
-        forceRender();
-      },
-    });
+    runQuestion(activeTools, question, sessionsRef.current, makeHandlers(true));
     forceRender();
   };
 
@@ -117,9 +160,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
         <Text bold color="cyan">
           {' ai-panel '}
         </Text>
-        <Text dimColor>
-          {lastQuestion ? `질문: ${lastQuestion}` : '질문을 입력하세요 (/exit 종료)'}
-        </Text>
+        <Text dimColor>{header || '질문을 입력하세요 (/exit 종료)'}</Text>
       </Text>
 
       {/* 레이아웃 흔들림 방지를 위해 notice 줄은 항상 자리를 차지한다 */}

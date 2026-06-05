@@ -32,7 +32,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "npm run build 2>&1 | tail -3 && echo BUILD_OK && tmux kill-session -t aipanel-reg 2>/dev/null; tmux new-session -d -s aipanel-reg -x 100 -y 25 'node /Users/jerry/private/ai-panel/dist/index.js --only claude \"한 단어로만 답해: 안녕?\"; echo \"APP_EXITED=$?\"; sleep 15'\nfor i in $(seq 1 20); do sleep 3; tmux capture-pane -t aipanel-reg -p | grep -qE '◐|응답 대기' || break; done\ntmux capture-pane -t aipanel-reg -p | grep -v '^$' | head -4\ntmux send-keys -t aipanel-reg -l \"/exit\" && sleep 0.3 && tmux send-keys -t aipanel-reg Enter && sleep 1.5\ntmux capture-pane -t aipanel-reg -p | grep APP_EXITED; tmux kill-session -t aipanel-reg 2>/dev/null; echo DONE",
+    "buildCommand": "npm run build 2>&1 | tail -5 && echo BUILD_OK",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": "npm run start",
@@ -90,14 +90,14 @@
   "hotPaths": [
     {
       "path": "src/app.tsx",
-      "accessCount": 12,
-      "lastAccessed": 1780649782633,
+      "accessCount": 17,
+      "lastAccessed": 1780649908430,
       "type": "file"
     },
     {
       "path": "docs/progress.md",
-      "accessCount": 6,
-      "lastAccessed": 1780649645063,
+      "accessCount": 7,
+      "lastAccessed": 1780650029471,
       "type": "file"
     },
     {
@@ -182,6 +182,12 @@
       "path": "docs/cross-review-plan.md",
       "accessCount": 1,
       "lastAccessed": 1780649632036,
+      "type": "file"
+    },
+    {
+      "path": "src/review.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780649873653,
       "type": "file"
     }
   ],
