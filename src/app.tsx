@@ -10,14 +10,26 @@ import { Panel, type PanelState } from './components/panel.js';
 import { PromptInput } from './components/prompt-input.js';
 
 interface Props {
+  /** 패널로 표시할 전체 도구 (미설치 포함) */
   tools: AdapterName[];
+  /** 미설치 도구 — 패널에 안내만 표시하고 질문을 보내지 않는다 */
+  missing: AdapterName[];
+  /** 시작과 동시에 전송할 첫 질문 (CLI 인자) */
+  initialQuestion?: string;
 }
 
-function initialPanels(tools: AdapterName[]): Record<string, PanelState> {
-  return Object.fromEntries(tools.map((t) => [t, { status: 'idle', text: '' } as PanelState]));
+function initialPanels(tools: AdapterName[], missing: AdapterName[]): Record<string, PanelState> {
+  return Object.fromEntries(
+    tools.map((t) => [
+      t,
+      missing.includes(t)
+        ? ({ status: 'error', text: '', error: `${t} CLI 미설치 — PATH 에서 찾을 수 없음` } as PanelState)
+        : ({ status: 'idle', text: '' } as PanelState),
+    ]),
+  );
 }
 
-export function App({ tools }: Props) {
+export function App({ tools, missing, initialQuestion }: Props) {
   const { exit } = useApp();
   const { stdout } = useStdout();
 
@@ -27,8 +39,11 @@ export function App({ tools }: Props) {
   const [, setTick] = useState(0); // 강제 리렌더용
   const forceRender = () => setTick((t) => t + 1);
 
-  const panelsRef = useRef<Record<string, PanelState>>(initialPanels(tools));
+  const panelsRef = useRef<Record<string, PanelState>>(initialPanels(tools, missing));
   const sessionsRef = useRef<SessionMap>({}); // 도구별 resume 세션 (2번째 질문부터 사용)
+
+  // 질문을 실제로 보낼 도구 (미설치 제외)
+  const activeTools = tools.filter((t) => !missing.includes(t));
 
   // busy 동안 100ms 간격으로 리렌더 — 델타 배칭 + 경과 시간 갱신
   useEffect(() => {
@@ -36,6 +51,12 @@ export function App({ tools }: Props) {
     const id = setInterval(forceRender, 100);
     return () => clearInterval(id);
   }, [busy]);
+
+  // CLI 인자로 받은 첫 질문은 마운트 직후 1회 전송
+  useEffect(() => {
+    if (initialQuestion) submit(initialQuestion);
+    // eslint 없음 — 마운트 1회 실행 의도
+  }, []);
 
   const submit = (raw: string) => {
     const question = raw.trim();
@@ -49,7 +70,7 @@ export function App({ tools }: Props) {
     setLastQuestion(question);
     setBusy(true);
 
-    runQuestion(tools, question, sessionsRef.current, {
+    runQuestion(activeTools, question, sessionsRef.current, {
       onStart: (name) => {
         panelsRef.current[name] = { status: 'running', text: '', startedAt: Date.now() };
       },

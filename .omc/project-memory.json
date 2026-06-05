@@ -32,7 +32,7 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": "npm run build >/dev/null 2>&1 && tmux kill-session -t aipanel-test 2>/dev/null; tmux new-session -d -s aipanel-test -x 120 -y 30 'node /Users/jerry/private/ai-panel/dist/index.js' && sleep 2 && tmux send-keys -t aipanel-test -l \"EKS가 뭔지 두 문장으로 설명해줘\" && sleep 0.5 && tmux send-keys -t aipanel-test Enter && sleep 25 && tmux capture-pane -t aipanel-test -p | grep -v '^$' | head -14",
+    "buildCommand": "npm run build >/dev/null 2>&1 && echo BUILD_OK && npm link >/dev/null 2>&1 && which ai-panel && ai-panel --help; echo \"help_exit=$?\"; ai-panel --only foo 2>&1; echo \"invalid_exit=$?\"",
     "testCommand": null,
     "lintCommand": null,
     "devCommand": "npm run start",
@@ -89,9 +89,15 @@
   },
   "hotPaths": [
     {
+      "path": "src/app.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1780640399085,
+      "type": "file"
+    },
+    {
       "path": "docs/progress.md",
-      "accessCount": 3,
-      "lastAccessed": 1780640338965,
+      "accessCount": 5,
+      "lastAccessed": 1780640535837,
       "type": "file"
     },
     {
@@ -110,6 +116,12 @@
       "path": "src/components/panel.tsx",
       "accessCount": 2,
       "lastAccessed": 1780640092915,
+      "type": "file"
+    },
+    {
+      "path": "src/index.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780640377654,
       "type": "file"
     },
     {
@@ -161,15 +173,9 @@
       "type": "file"
     },
     {
-      "path": "src/app.tsx",
+      "path": "README.md",
       "accessCount": 1,
-      "lastAccessed": 1780639857844,
-      "type": "file"
-    },
-    {
-      "path": "src/index.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1780639860304,
+      "lastAccessed": 1780640429250,
       "type": "file"
     }
   ],
