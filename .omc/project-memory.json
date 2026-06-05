@@ -1,0 +1,141 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1780639481602,
+  "projectRoot": "/Users/jerry/private/ai-panel",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.2.7",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build 2>&1 | tail -5 && echo BUILD_OK",
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": "npm run start",
+    "scripts": {
+      "build": "tsc",
+      "start": "node dist/index.js"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1780639481574,
+      "keyFiles": [
+        "index.js"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 2,
+      "lastAccessed": 1780639481574,
+      "keyFiles": [
+        "ai-panel-plan.md",
+        "progress.md"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 1,
+      "lastAccessed": 1780639481577,
+      "keyFiles": [
+        "index.tsx"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/adapters/types.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780639621924,
+      "type": "file"
+    },
+    {
+      "path": "src/adapters/proc.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780639634629,
+      "type": "file"
+    },
+    {
+      "path": "src/adapters/claude.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780639643221,
+      "type": "file"
+    },
+    {
+      "path": "src/adapters/codex.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780639651272,
+      "type": "file"
+    },
+    {
+      "path": "src/adapters/gemini.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780639660244,
+      "type": "file"
+    },
+    {
+      "path": "src/adapters/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780639662150,
+      "type": "file"
+    },
+    {
+      "path": "src/smoke.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780639666948,
+      "type": "file"
+    },
+    {
+      "path": "docs/progress.md",
+      "accessCount": 1,
+      "lastAccessed": 1780639747710,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

@@ -13,12 +13,14 @@
 - [x] 검증: `npm run build && node dist/index.js` 실행 확인 (2026-06-05)
 
 ### Phase 2 — CLI 어댑터 레이어
-- [ ] 공통 어댑터 인터페이스 정의 (types.ts)
-- [ ] claude 어댑터 (stream-json 파싱, session_id 추출)
-- [ ] codex 어댑터 (exec --json JSONL 파싱, 세션 id 추출)
-- [ ] gemini 어댑터 (-o stream-json 파싱)
-- [ ] 에러/타임아웃 → error 이벤트 변환
-- [ ] 검증: 스모크 스크립트로 3개 어댑터 각각 실제 질문 1건 전송 확인
+- [x] 공통 어댑터 인터페이스 정의 (types.ts) + spawn/JSONL 공통 헬퍼 (proc.ts)
+- [x] claude 어댑터 (stream-json 파싱, session_id 추출)
+- [x] codex 어댑터 (exec --json JSONL 파싱, thread_id 추출, --skip-git-repo-check)
+- [x] gemini 어댑터 (-o stream-json 파싱, resume은 latest 기반)
+- [x] 에러/타임아웃 → error 이벤트 변환 (ENOENT 케이스 검증 완료)
+- [x] 검증: 스모크 스크립트(`node dist/smoke.js <도구> "<질문>"`)로 3개 어댑터 실제 질문 1건 전송 확인 (2026-06-05, claude 6.9s / codex 8.8s / gemini 12.7s, 모두 delta+done(sessionId) 수신)
+
+> 실측 메모: codex는 토큰 델타 없이 `item.completed`로 전체 답변이 한 번에 옴. claude는 stream_event의 text_delta로 토큰 스트리밍.
 
 ### Phase 3 — Ink TUI
 - [ ] 3분할 레이아웃 + 하단 입력창
