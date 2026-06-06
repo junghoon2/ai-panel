@@ -188,10 +188,11 @@ export function App({ tools, missing, initialQuestion }: Props) {
     if (!finalText) return;
 
     lastUserQuestionRef.current = finalText;
-    // 일부 도구에게만 가는 턴은 헤더에 대상 표시
+    // 일부 도구에게만 가는 턴은 헤더에 대상 표시. 여러 줄 질문은 헤더에서 한 줄로 정리
     const tag = targets.length < activeTools.length ? `[${targets.join(',')}] ` : '';
+    const headerText = finalText.replace(/\s*\n\s*/g, ' ');
     startTurn(
-      `질문: ${tag}${finalText}${images.length > 0 ? ` (이미지 ${images.length}장)` : ''}`,
+      `질문: ${tag}${headerText}${images.length > 0 ? ` (이미지 ${images.length}장)` : ''}`,
       targets.map((name) => ({ name, question: finalText, images })),
       true,
     );
