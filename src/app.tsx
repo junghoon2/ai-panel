@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AdapterName } from './adapters/types.js';
 import { runTasks, type AgentTask, type RunHandlers, type SessionMap } from './orchestrator.js';
 import { buildReviewPrompt, parseReviewCommand } from './review.js';
+import { SLASH_COMMANDS } from './commands.js';
 import { extractImagePaths } from './image.js';
 import { clipboardImageToFile } from './clipboard.js';
 import { Panel, type PanelState } from './components/panel.js';
@@ -218,7 +219,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
     // — "/단어" 형태만 명령으로 간주 (경로는 / 가 더 포함되므로 해당 없음)
     const firstToken = text.split(/\s+/)[0] ?? '';
     if (/^\/\w+$/.test(firstToken)) {
-      setNotice(`알 수 없는 명령: ${firstToken} — 사용 가능: /paste, /review, /exit`);
+      setNotice(`알 수 없는 명령: ${firstToken} — 사용 가능: ${SLASH_COMMANDS.map((c) => c.name).join(', ')}`);
       return;
     }
     // 이미지만 던진 경우 기본 지시문을 붙인다
@@ -237,7 +238,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const rows = stdout?.rows ?? 24;
   // 패널 내부 표시 영역 계산 (테두리/패딩 근사 보정)
   const panelInnerWidth = Math.max(10, Math.floor(cols / tools.length) - 4);
-  const panelInnerLines = Math.max(3, rows - 9); // 헤더1 + notice1 + 입력3 + 패널 테두리2 + 상태줄1 + 여유1
+  const panelInnerLines = Math.max(3, rows - 10); // 헤더1 + notice1 + 입력3 + 자동완성1 + 패널 테두리2 + 상태줄1 + 여유1
 
   return (
     <>
