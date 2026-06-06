@@ -40,6 +40,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
 
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [focus, setFocus] = useState<AdapterName | null>(null); // 특정 도구 전용 모드 (/claude 등)
   const [header, setHeader] = useState(''); // 상단 표시 (질문: ... / 리뷰: ...)
   const [notice, setNotice] = useState(''); // 명령 피드백 (오류·안내) 표시줄
   const [history, setHistory] = useState<HistoryEntry[]>([]); // 지나간 턴 (스크롤백 보존)
@@ -178,6 +179,24 @@ export function App({ tools, missing, initialQuestion }: Props) {
     setInput((v) => `${v}${v && !v.endsWith(' ') ? ' ' : ''}${image} `);
   };
 
+  // 일반 질문 1건을 지정한 도구들에게 전송하는 공통 경로
+  // (이미지 경로 감지 포함 — 전체 질문과 /claude 등 단일 도구 질문이 공유)
+  const sendQuestion = (targets: AdapterName[], raw: string) => {
+    const { question: text, images } = extractImagePaths(raw);
+    // 이미지만 던진 경우 기본 지시문을 붙인다
+    const finalText = text || (images.length > 0 ? '첨부한 이미지를 설명해줘' : '');
+    if (!finalText) return;
+
+    lastUserQuestionRef.current = finalText;
+    // 일부 도구에게만 가는 턴은 헤더에 대상 표시
+    const tag = targets.length < activeTools.length ? `[${targets.join(',')}] ` : '';
+    startTurn(
+      `질문: ${tag}${finalText}${images.length > 0 ? ` (이미지 ${images.length}장)` : ''}`,
+      targets.map((name) => ({ name, question: finalText, images })),
+      true,
+    );
+  };
+
   const submit = (raw: string) => {
     const question = raw.trim();
     if (!question || busy) return;
@@ -194,6 +213,30 @@ export function App({ tools, missing, initialQuestion }: Props) {
       return;
     }
 
+    // /claude /codex /gemini — 해당 도구에게만 질문 (인자 없으면 전용 모드 전환)
+    const toolCmd = tools.find((t) => question === `/${t}` || question.startsWith(`/${t} `));
+    if (toolCmd) {
+      if (missing.includes(toolCmd)) {
+        setNotice(`${toolCmd} CLI 가 미설치라 사용할 수 없습니다.`);
+        return;
+      }
+      const rest = question.slice(toolCmd.length + 1).trim();
+      if (!rest) {
+        setFocus(toolCmd);
+        setNotice(`${toolCmd} 전용 모드 — 이후 질문이 ${toolCmd} 에게만 전송됩니다 (/all 로 해제)`);
+        return;
+      }
+      sendQuestion([toolCmd], rest); // 이번 턴만 해당 도구에게
+      return;
+    }
+
+    // /all — 전용 모드 해제
+    if (question === '/all') {
+      setFocus(null);
+      setNotice('전용 모드 해제 — 다시 모든 도구에게 질문합니다.');
+      return;
+    }
+
     // /paste [질문] — 클립보드 이미지를 임시 파일로 꺼내 첨부 (파일 저장 없이)
     if (question === '/paste' || question.startsWith('/paste ')) {
       const image = clipboardImageToFile();
@@ -202,36 +245,28 @@ export function App({ tools, missing, initialQuestion }: Props) {
         return;
       }
       const text = question.slice('/paste'.length).trim() || '첨부한 이미지를 설명해줘';
+      const targets = focus ? [focus] : activeTools; // 전용 모드 존중
+      const tag = targets.length < activeTools.length ? `[${targets.join(',')}] ` : '';
       lastUserQuestionRef.current = text;
       startTurn(
-        `질문: ${text} (클립보드 이미지)`,
-        activeTools.map((name) => ({ name, question: text, images: [image] })),
+        `질문: ${tag}${text} (클립보드 이미지)`,
+        targets.map((name) => ({ name, question: text, images: [image] })),
         true,
       );
       return;
     }
 
-    // 질문에 이미지 파일 경로가 있으면 분리해 도구별 네이티브 방식으로 첨부한다
-    // (이미지 경로도 / 로 시작하므로 명령 오타 가드보다 먼저 처리해야 한다)
-    const { question: text, images } = extractImagePaths(question);
-
     // 오타 등 알 수 없는 슬래시 명령이 질문으로 전송되는 것 방지
-    // — "/단어" 형태만 명령으로 간주 (경로는 / 가 더 포함되므로 해당 없음)
-    const firstToken = text.split(/\s+/)[0] ?? '';
+    // — 이미지 경로도 / 로 시작하므로 경로 제거 후 "/단어" 형태만 명령으로 간주
+    const { question: guardText } = extractImagePaths(question);
+    const firstToken = guardText.split(/\s+/)[0] ?? '';
     if (/^\/\w+$/.test(firstToken)) {
       setNotice(`알 수 없는 명령: ${firstToken} — 사용 가능: ${SLASH_COMMANDS.map((c) => c.name).join(', ')}`);
       return;
     }
-    // 이미지만 던진 경우 기본 지시문을 붙인다
-    const finalText = text || (images.length > 0 ? '첨부한 이미지를 설명해줘' : '');
-    if (!finalText) return;
 
-    lastUserQuestionRef.current = finalText;
-    startTurn(
-      `질문: ${finalText}${images.length > 0 ? ` (이미지 ${images.length}장)` : ''}`,
-      activeTools.map((name) => ({ name, question: finalText, images })),
-      true,
-    );
+    // 일반 질문 — 전용 모드(focus)면 해당 도구에게만, 아니면 전체에게
+    sendQuestion(focus ? [focus] : activeTools, question);
   };
 
   const cols = stdout?.columns ?? 80;
@@ -252,7 +287,13 @@ export function App({ tools, missing, initialQuestion }: Props) {
         <Text bold color="cyan">
           {' ai-panel '}
         </Text>
-        <Text dimColor>{header || '질문을 입력하세요 (/exit 종료)'}</Text>
+        {/* 전용 모드 표시 — 어느 도구에게만 가는 상태인지 항상 보이게 */}
+        {focus ? (
+          <Text bold color="yellow">
+            [{focus} 전용]
+          </Text>
+        ) : null}
+        <Text dimColor> {header || '질문을 입력하세요 (/exit 종료)'}</Text>
       </Text>
 
       {/* 레이아웃 흔들림 방지를 위해 notice 줄은 항상 자리를 차지한다 */}
