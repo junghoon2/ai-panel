@@ -170,5 +170,8 @@ export const claudeAdapter: Adapter = {
   // 워커의 파이프 핸들이 이벤트 루프를 잡고 있어, 종료 시 명시적으로 정리해야
   // 부모 프로세스가 빠진다 (정리 안 하면 /exit 후에도 프로세스가 남는다)
   dispose: () => worker.kill(),
+  // 턴 중단 — 워커를 죽이면 진행 중이던 ask 루프가 종료 분기로 빠지고,
+  // 다음 질문에서 마지막 세션을 --resume 해 맥락을 복구한다
+  cancelActive: () => worker.kill(),
   ask: (question, sessionId, images) => worker.ask(question, sessionId, images),
 };

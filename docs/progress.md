@@ -80,6 +80,7 @@
 - 2026-06-05: 교차 리뷰 기능 Phase 1~3 구현·검증 완료 (/review <리뷰어> <대상>, /review all). 완료 기준 4개 항목 모두 충족.
 - 2026-06-06: 응답 지연 실측 분석 → claude 훅/MCP 생략, gemini 모델 고정 적용. 이어서 claude 상시 유지 워커 도입 (stream-json 입력 모드, 앱 시작 시 prewarm): claude 턴 2.9~4s → ~1.5s. 종료 시 워커 미정리 누수 발견·수정 (waitUntilExit 후 dispose).
 - 2026-06-06: 이미지 동시 입력 기능 추가 — 질문 텍스트에서 이미지 경로 자동 감지(src/image.ts, 드래그&드롭 "\ " 이스케이프·따옴표·~ 지원), 도구별 네이티브 첨부(claude base64 블록 / codex -i -- / gemini @경로+--include-directories). 빨간 PNG 테스트로 3개 도구 모두 정답 확인. claude 어댑터 외부 인터페이스가 images 인자를 누락하는 버그 발견·수정.
+- 2026-06-07: Claude Code 대비 기본 CLI 기능 보강 — ① Ctrl+C: 입력 비우기 → 빈 입력 2연타 시 종료 (Ink exitOnCtrlC 비활성), ② ESC: 진행 중 턴 중단 (orchestrator RunController + 어댑터 cancelActive — spawn 일괄 kill, claude 워커는 kill 후 다음 턴 resume 복구), ③ ↑↓ 질문 히스토리, ④ readline 단축키(Ctrl+A/E/U/K/W, Option+⌫). E2E 검증 완료 (중단 후 후속 질문 정상, 더블 Ctrl+C 종료 코드 0, 워커 정리 확인).
 - 2026-06-07: 입력창 개선 — 커서 편집(←→ 이동·중간 삽입/삭제, 여러 줄에서 ↑↓ 줄 이동)과 여러 줄 입력(\+Enter, Option+Enter, CSI-u Shift+Enter) 추가. 붙여넣기 청크의 개행은 제출이 아닌 줄바꿈으로 삽입하도록 변경. Shift+Enter는 대부분 터미널이 일반 Enter와 동일한 \r을 보내 구분 불가(구조적 제약).
 - 2026-06-07: 특정 도구 전용 질문 기능 추가 — /claude·/codex·/gemini [질문] (인자 있으면 해당 턴만, 없으면 전용 모드 전환), /all 로 해제. 전용 모드는 헤더 [도구 전용] 칩으로 표시, /paste 도 모드 존중. E2E 검증 완료 (단발·모드·복귀·패널 유지·세션 연속성).
 - 2026-06-06: /paste 명령 추가 — macOS 클립보드 이미지를 osascript(«class PNGf»)로 임시 PNG에 꺼내 첨부 (src/clipboard.ts, 외부 의존성 없음). 이미지 없는 클립보드는 notice 안내. E2E 검증 완료.

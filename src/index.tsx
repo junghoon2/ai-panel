@@ -63,7 +63,10 @@ if (available.length === 0) {
 const { adapters } = await import('./adapters/index.js');
 for (const t of available) adapters[t].prewarm?.();
 
-const app = render(<App tools={selected} missing={missing} initialQuestion={initialQuestion} />);
+// Ctrl+C 는 즉시 종료가 아니라 입력 취소/턴 중단으로 동작한다 (App 의 useInput 에서 처리)
+const app = render(<App tools={selected} missing={missing} initialQuestion={initialQuestion} />, {
+  exitOnCtrlC: false,
+});
 
 // /exit 등으로 언마운트되면 상시 워커를 정리해 프로세스가 정상 종료되게 한다
 await app.waitUntilExit();

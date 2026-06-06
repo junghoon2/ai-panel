@@ -5,6 +5,15 @@ import { createInterface } from 'node:readline';
 /** 도구별 안전망 타임아웃 (응답 없이 영원히 대기하는 상황 방지) */
 export const DEFAULT_TIMEOUT_MS = 120_000;
 
+// 현재 실행 중인 자식 프로세스 — 사용자가 ESC 로 턴을 중단할 때 일괄 종료한다
+// (한 번에 한 턴만 실행되므로(busy 잠금) 전체 kill 이 곧 현재 턴 취소다)
+const activeChildren = new Set<import('node:child_process').ChildProcess>();
+
+/** 진행 중인 spawn 자식 프로세스를 모두 종료한다 (턴 중단용) */
+export function killActiveSpawns(): void {
+  for (const child of activeChildren) child.kill('SIGKILL');
+}
+
 /**
  * command 를 실행해 stdout 의 JSONL 을 파싱해 yield 한다.
  * - JSON 이 아닌 줄은 무시한다 (배너/로그 등)
@@ -17,6 +26,8 @@ export async function* spawnJsonl(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): AsyncGenerator<Record<string, unknown>> {
   const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  activeChildren.add(child);
+  child.once('close', () => activeChildren.delete(child));
 
   // stderr 는 화면에 흘리지 않고 실패 시 진단용으로 꼬리만 보관
   let stderrTail = '';

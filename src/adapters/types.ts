@@ -26,6 +26,8 @@ export interface Adapter {
   prewarm?(): void;
   /** 앱 종료 시 상시 워커 등 보유 자원 정리 (선택) */
   dispose?(): void;
+  /** 진행 중인 응답을 즉시 중단한다 (ESC 턴 취소용, 선택) */
+  cancelActive?(): void;
 }
 
 /** unknown 에러를 사용자 표시용 문자열로 변환 */

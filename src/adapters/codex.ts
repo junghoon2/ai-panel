@@ -10,10 +10,11 @@
 //       stderr 에 MCP 연결 에러 로그가 섞이므로 stdout JSONL 만 신뢰한다.
 import type { Adapter, AdapterEvent } from './types.js';
 import { errorMessage } from './types.js';
-import { spawnJsonl } from './proc.js';
+import { killActiveSpawns, spawnJsonl } from './proc.js';
 
 export const codexAdapter: Adapter = {
   name: 'codex',
+  cancelActive: killActiveSpawns, // 턴 중단 — 실행 중인 spawn 종료
 
   async *ask(question: string, sessionId?: string, images?: string[]): AsyncGenerator<AdapterEvent> {
     // 옵션은 exec 바로 뒤, resume 은 서브커맨드로 이어붙인다

@@ -81,7 +81,10 @@ ai-panel --only claude,gemini     # 선택한 도구만 사용
 | `/review <리뷰어> <대상>` | 리뷰어가 대상 도구의 답변을 리뷰 (예: `/review claude gemini`) |
 | `/review all` | 각 도구가 나머지 도구들의 답변을 교차 리뷰 (3패널 동시) |
 | `/exit` (별칭: `/quit`, `/q`) | 종료 |
-| Ctrl+C | 종료 |
+| `ESC` | **응답 중단** (진행 중인 턴 취소, 세션은 유지) / 입력 비우기 |
+| `Ctrl+C` | 입력 비우기 → 빈 입력에서 한 번 더 누르면 종료 (Claude Code 와 동일) |
+| `↑` `↓` | 이전에 제출한 질문 다시 불러오기 (입력 히스토리) |
+| `Ctrl+A / E / U / K / W` | 커서 처음/끝 이동, 커서 앞/뒤 삭제, 단어 삭제 (readline 단축키) |
 
 - `/` 를 입력하면 명령 자동 완성 후보가 표시됩니다 (↑↓ 선택, Tab/Enter 완성)
 - **여러 줄 입력**: `\` 입력 후 Enter, 또는 Option+Enter (Shift+Enter 는 CSI-u 지원 터미널에서만 동작 — 대부분의 터미널은 Shift+Enter 를 일반 Enter 와 같은 문자로 보내 구분 불가)

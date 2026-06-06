@@ -3,13 +3,15 @@
 // 이미지 경로가 감지되면 [Image #N] 칩으로 표시해 첨부 여부를 알 수 있게 한다
 // "/" 로 시작하면 슬래시 명령 자동 완성 후보를 표시한다 (↑↓ 선택, Tab/Enter 완성)
 import { Box, Text, useInput } from 'ink';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { matchSlashCommands } from '../commands.js';
 import { replaceImagePathsForDisplay } from '../image.js';
 
 interface Props {
   value: string;
   disabled: boolean;
+  /** 제출했던 질문들 — ↑↓ 로 다시 불러온다 (오래된 것 → 최신 순) */
+  history: string[];
   onChange(value: string): void;
   onSubmit(value: string): void;
   /** Ctrl+V — 클립보드 이미지 붙여넣기 (Cmd+V 는 터미널이 가로채 앱에 전달되지 않음) */
@@ -39,7 +41,7 @@ function InputDisplay({ value, cursor, showCursor }: { value: string; cursor: nu
   );
 }
 
-export function PromptInput({ value, disabled, onChange, onSubmit, onPasteImage }: Props) {
+export function PromptInput({ value, disabled, history, onChange, onSubmit, onPasteImage }: Props) {
   // 자동 완성 후보 — value 에서 매번 파생하고, 선택 위치만 상태로 가진다
   const suggestions = disabled ? [] : matchSlashCommands(value);
   const [selected, setSelected] = useState(0);
@@ -61,6 +63,17 @@ export function PromptInput({ value, disabled, onChange, onSubmit, onPasteImage 
     onChange(`${name} `);
     setCursorState(name.length + 1);
     setSelected(0);
+  };
+
+  // 히스토리 탐색 위치 — -1 은 "현재 작성 중", 그 외는 history 인덱스
+  const [histPos, setHistPos] = useState(-1);
+  const draftRef = useRef(''); // 히스토리 탐색 전 작성하던 내용 보관
+
+  const loadHistory = (pos: number) => {
+    setHistPos(pos);
+    const text = pos === -1 ? draftRef.current : history[pos];
+    onChange(text);
+    setCursorState(text.length);
   };
 
   /** ↑↓ — 여러 줄 입력에서 줄 사이 커서 이동 (열 위치 유지) */
@@ -124,11 +137,38 @@ export function PromptInput({ value, disabled, onChange, onSubmit, onPasteImage 
       onSubmit(value);
       setSelected(0);
       setCursorState(0);
+      setHistPos(-1);
+      draftRef.current = '';
       return;
     }
 
     if (key.ctrl && input === 'v') {
       onPasteImage();
+      return;
+    }
+
+    // readline 단축키 — Ctrl+A(처음) / Ctrl+E(끝) / Ctrl+U(커서 앞 삭제) / Ctrl+K(커서 뒤 삭제) / Ctrl+W·Option+⌫(단어 삭제)
+    if (key.ctrl && input === 'a') {
+      setCursorState(0);
+      return;
+    }
+    if (key.ctrl && input === 'e') {
+      setCursorState(value.length);
+      return;
+    }
+    if (key.ctrl && input === 'u') {
+      onChange(value.slice(cursor));
+      setCursorState(0);
+      return;
+    }
+    if (key.ctrl && input === 'k') {
+      onChange(value.slice(0, cursor));
+      return;
+    }
+    if ((key.ctrl && input === 'w') || (key.meta && (key.backspace || key.delete))) {
+      const head = value.slice(0, cursor).replace(/\S+\s*$/, '');
+      onChange(head + value.slice(cursor));
+      setCursorState(head.length);
       return;
     }
 
@@ -142,11 +182,26 @@ export function PromptInput({ value, disabled, onChange, onSubmit, onPasteImage 
       return;
     }
     if (key.upArrow) {
-      moveLine(-1);
+      // 첫 줄이면 이전 질문 불러오기, 아니면 윗줄로 커서 이동
+      const onFirstLine = !value.slice(0, cursor).includes('\n');
+      if (onFirstLine) {
+        const pos = histPos === -1 ? history.length - 1 : histPos - 1;
+        if (pos < 0 || history.length === 0) return;
+        if (histPos === -1) draftRef.current = value; // 작성하던 내용 보관
+        loadHistory(pos);
+      } else {
+        moveLine(-1);
+      }
       return;
     }
     if (key.downArrow) {
-      moveLine(1);
+      // 히스토리 탐색 중 + 마지막 줄이면 다음 질문(또는 작성하던 내용)으로, 아니면 아랫줄 이동
+      const onLastLine = !value.slice(cursor).includes('\n');
+      if (onLastLine && histPos !== -1) {
+        loadHistory(histPos + 1 >= history.length ? -1 : histPos + 1);
+      } else {
+        moveLine(1);
+      }
       return;
     }
     if (key.backspace || key.delete) {

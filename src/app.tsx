@@ -2,10 +2,16 @@
 //
 // 렌더링 전략: 델타마다 setState 하면 리렌더 폭주로 화면이 깜빡이므로,
 // 패널 상태는 ref 에 직접 누적하고 busy 동안 100ms 간격 tick 으로만 리렌더한다.
-import { Box, Static, Text, useApp, useStdout } from 'ink';
+import { Box, Static, Text, useApp, useInput, useStdout } from 'ink';
 import { useEffect, useRef, useState } from 'react';
 import type { AdapterName } from './adapters/types.js';
-import { runTasks, type AgentTask, type RunHandlers, type SessionMap } from './orchestrator.js';
+import {
+  runTasks,
+  type AgentTask,
+  type RunController,
+  type RunHandlers,
+  type SessionMap,
+} from './orchestrator.js';
 import { buildReviewPrompt, parseReviewCommand } from './review.js';
 import { SLASH_COMMANDS } from './commands.js';
 import { extractImagePaths } from './image.js';
@@ -99,6 +105,37 @@ export function App({ tools, missing, initialQuestion }: Props) {
   // 현재 턴에 참여한 도구들 — 턴 보존 시 참여하지 않은 패널(이전 답변)이 중복 기록되는 것 방지
   const currentTurnToolsRef = useRef<AdapterName[]>([]);
 
+  // 진행 중인 턴의 취소 핸들 + Ctrl+C 더블 입력 추적 + 제출한 질문 히스토리(↑↓ 재호출용)
+  const controllerRef = useRef<RunController | null>(null);
+  const lastCtrlCRef = useRef(0);
+  const questionHistoryRef = useRef<string[]>([]);
+
+  // Ctrl+C / ESC — Claude Code 와 동일한 동작:
+  //   응답 중: 턴 중단 | 입력 있음: 입력 비우기 | 입력 없음(Ctrl+C): 2초 안에 한 번 더 → 종료
+  useInput((char, key) => {
+    const isCtrlC = key.ctrl && char === 'c';
+    if (!isCtrlC && !key.escape) return;
+
+    if (busy) {
+      controllerRef.current?.cancel();
+      setNotice('응답을 중단했습니다.');
+      return;
+    }
+    if (input) {
+      setInput('');
+      if (isCtrlC) lastCtrlCRef.current = Date.now();
+      return;
+    }
+    if (isCtrlC) {
+      if (Date.now() - lastCtrlCRef.current < 2000) {
+        exit();
+        return;
+      }
+      lastCtrlCRef.current = Date.now();
+      setNotice('한 번 더 Ctrl+C 를 누르면 종료합니다.');
+    }
+  });
+
   // 직전 턴을 히스토리로 보존 (Static 으로 스크롤백에 1회 출력됨)
   const archivePreviousTurn = () => {
     if (!header) return; // 첫 턴 전에는 보존할 것이 없다
@@ -116,7 +153,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
     setNotice('');
     setHeader(headerText);
     setBusy(true);
-    runTasks(tasks, sessionsRef.current, makeHandlers(recordAnswers));
+    controllerRef.current = runTasks(tasks, sessionsRef.current, makeHandlers(recordAnswers));
     forceRender();
   };
 
@@ -201,6 +238,12 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const submit = (raw: string) => {
     const question = raw.trim();
     if (!question || busy) return;
+
+    // ↑↓ 로 다시 불러올 수 있게 제출한 줄을 히스토리에 보관 (연속 중복 제외)
+    if (questionHistoryRef.current.at(-1) !== question) {
+      questionHistoryRef.current.push(question);
+    }
+
     // 기본 종료 명령은 /exit (claude 등과 통일), /quit·/q 는 별칭으로 유지
     if (question === '/exit' || question === '/quit' || question === '/q') {
       exit();
@@ -315,6 +358,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
         <PromptInput
           value={input}
           disabled={busy}
+          history={questionHistoryRef.current}
           onChange={setInput}
           onSubmit={submit}
           onPasteImage={pasteClipboardImage}

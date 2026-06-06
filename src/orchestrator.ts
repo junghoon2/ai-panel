@@ -23,8 +23,14 @@ export interface AgentTask {
   images?: string[];
 }
 
-export function runTasks(tasks: AgentTask[], sessions: SessionMap, h: RunHandlers): void {
+/** 진행 중인 턴을 중단할 수 있는 핸들 */
+export interface RunController {
+  cancel(): void;
+}
+
+export function runTasks(tasks: AgentTask[], sessions: SessionMap, h: RunHandlers): RunController {
   let remaining = tasks.length;
+  let canceled = false;
   const settle = () => {
     remaining -= 1;
     if (remaining === 0) h.onAllSettled();
@@ -41,16 +47,26 @@ export function runTasks(tasks: AgentTask[], sessions: SessionMap, h: RunHandler
             if (ev.sessionId) sessions[name] = ev.sessionId; // 다음 질문에서 resume
             h.onDone(name);
           } else {
-            h.onError(name, ev.error ?? '알 수 없는 오류');
+            // 취소로 죽인 프로세스의 에러 메시지는 "사용자 중단" 으로 정리
+            h.onError(name, canceled ? '사용자 중단 (ESC)' : (ev.error ?? '알 수 없는 오류'));
           }
         }
       } catch (err) {
         // 어댑터는 throw 하지 않는 계약이지만 안전망으로 잡는다
-        h.onError(name, errorMessage(err));
+        h.onError(name, canceled ? '사용자 중단 (ESC)' : errorMessage(err));
       }
       settle();
     })();
   }
+
+  return {
+    cancel() {
+      if (canceled) return;
+      canceled = true;
+      // 자식 프로세스를 죽이면 각 어댑터 스트림이 에러 이벤트로 끝나고 settle 된다
+      for (const { name } of tasks) adapters[name].cancelActive?.();
+    },
+  };
 }
 
 /** 같은 질문을 여러 도구에 fan-out 하는 기본 경로 */

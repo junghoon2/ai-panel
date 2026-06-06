@@ -10,10 +10,11 @@
 //       최근 세션을 이어간다. ai-panel 프로세스의 cwd 기준으로 격리된다.
 import type { Adapter, AdapterEvent } from './types.js';
 import { errorMessage } from './types.js';
-import { spawnJsonl } from './proc.js';
+import { killActiveSpawns, spawnJsonl } from './proc.js';
 
 export const geminiAdapter: Adapter = {
   name: 'gemini',
+  cancelActive: killActiveSpawns, // 턴 중단 — 실행 중인 spawn 종료
 
   async *ask(question: string, sessionId?: string, images?: string[]): AsyncGenerator<AdapterEvent> {
     // gemini 는 한국어 질문에도 영어로 답하는 경우가 있어, 새 세션 첫 턴에
