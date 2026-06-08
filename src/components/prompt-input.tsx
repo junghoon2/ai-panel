@@ -9,7 +9,10 @@ import { replaceImagePathsForDisplay } from '../image.js';
 
 interface Props {
   value: string;
-  disabled: boolean;
+  /** 응답 생성 중 — 입력·편집은 허용하고, Enter 는 곧장 보내지 않고 큐에 쌓는다 */
+  busy: boolean;
+  /** 전송 대기 중인 메시지 수 (응답이 끝나면 자동 전송) */
+  queuedCount: number;
   /** 제출했던 질문들 — ↑↓ 로 다시 불러온다 (오래된 것 → 최신 순) */
   history: string[];
   onChange(value: string): void;
@@ -41,9 +44,9 @@ function InputDisplay({ value, cursor, showCursor }: { value: string; cursor: nu
   );
 }
 
-export function PromptInput({ value, disabled, history, onChange, onSubmit, onPasteImage }: Props) {
+export function PromptInput({ value, busy, queuedCount, history, onChange, onSubmit, onPasteImage }: Props) {
   // 자동 완성 후보 — value 에서 매번 파생하고, 선택 위치만 상태로 가진다
-  const suggestions = disabled ? [] : matchSlashCommands(value);
+  const suggestions = matchSlashCommands(value);
   const [selected, setSelected] = useState(0);
   // 입력이 바뀌어 후보가 줄어도 선택 위치가 범위를 벗어나지 않게 보정
   const sel = Math.min(selected, Math.max(0, suggestions.length - 1));
@@ -95,7 +98,7 @@ export function PromptInput({ value, disabled, history, onChange, onSubmit, onPa
   };
 
   useInput((input, key) => {
-    if (disabled) return;
+    // 응답 생성 중에도 입력·편집은 허용한다 (Enter 시의 큐 적재는 상위 onSubmit 이 처리)
 
     // 자동 완성이 열려 있을 때 — ↑↓ 는 후보 선택 (←→ 는 커서 이동에 양보)
     if (suggestions.length > 0) {
@@ -222,8 +225,7 @@ export function PromptInput({ value, disabled, history, onChange, onSubmit, onPa
       <Box borderStyle="round" paddingX={1}>
         <Text>
           <Text color="cyan">{'> '}</Text>
-          <InputDisplay value={value} cursor={cursor} showCursor={!disabled} />
-          {disabled ? <Text dimColor> (응답 대기 중... 입력 잠금)</Text> : null}
+          <InputDisplay value={value} cursor={cursor} showCursor={true} />
         </Text>
       </Box>
       {/* 레이아웃 흔들림 방지를 위해 자동 완성 줄은 항상 자리를 차지한다 (notice 줄과 동일 패턴) */}
@@ -243,6 +245,11 @@ export function PromptInput({ value, disabled, history, onChange, onSubmit, onPa
             ))}
             <Text dimColor> {suggestions[sel].description} · Tab/Enter 완성</Text>
           </>
+        ) : busy ? (
+          <Text dimColor>
+            {' 응답 생성 중 — Enter 로 전송 대기에 추가'}
+            {queuedCount > 0 ? ` · 전송 대기 ${queuedCount}건` : ''}
+          </Text>
         ) : (
           <Text dimColor> 줄바꿈: \+Enter 또는 Option+Enter</Text>
         )}

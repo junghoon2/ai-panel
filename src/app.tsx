@@ -109,6 +109,8 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const controllerRef = useRef<RunController | null>(null);
   const lastCtrlCRef = useRef(0);
   const questionHistoryRef = useRef<string[]>([]);
+  // 응답 생성 중 제출한 메시지 — 큐에 쌓아두고 턴이 끝나면 순서대로 자동 전송한다
+  const queueRef = useRef<string[]>([]);
 
   // Ctrl+C / ESC — Claude Code 와 동일한 동작:
   //   응답 중: 턴 중단 | 입력 있음: 입력 비우기 | 입력 없음(Ctrl+C): 2초 안에 한 번 더 → 종료
@@ -237,7 +239,15 @@ export function App({ tools, missing, initialQuestion }: Props) {
 
   const submit = (raw: string) => {
     const question = raw.trim();
-    if (!question || busy) return;
+    if (!question) return;
+
+    // 응답 생성 중이면 곧장 처리하지 않고 큐에 적재 — 턴이 끝나면 drain 이 다시 submit 한다
+    if (busy) {
+      queueRef.current.push(question);
+      setInput('');
+      forceRender();
+      return;
+    }
 
     // ↑↓ 로 다시 불러올 수 있게 제출한 줄을 히스토리에 보관 (연속 중복 제외)
     if (questionHistoryRef.current.at(-1) !== question) {
@@ -313,6 +323,15 @@ export function App({ tools, missing, initialQuestion }: Props) {
     sendQuestion(focus ? [focus] : activeTools, question);
   };
 
+  // 턴이 끝나(busy=false) 큐에 대기 중인 메시지가 있으면 가장 먼저 들어온 것을 자동 전송한다.
+  // submit 이 새 턴을 시작하면 busy 가 다시 true 가 되고, 그 턴이 끝나면 이 effect 가 다음 것을 꺼낸다.
+  useEffect(() => {
+    if (busy || queueRef.current.length === 0) return;
+    const next = queueRef.current.shift();
+    if (next) submit(next);
+    // eslint 없음 — busy 전이에만 반응하면 되고, submit 은 매 렌더 최신 클로저를 쓴다
+  }, [busy]);
+
   const cols = stdout?.columns ?? 80;
   const rows = stdout?.rows ?? 24;
   // 패널 내부 표시 영역 계산 (테두리/패딩 근사 보정)
@@ -357,7 +376,8 @@ export function App({ tools, missing, initialQuestion }: Props) {
 
         <PromptInput
           value={input}
-          disabled={busy}
+          busy={busy}
+          queuedCount={queueRef.current.length}
           history={questionHistoryRef.current}
           onChange={setInput}
           onSubmit={submit}
