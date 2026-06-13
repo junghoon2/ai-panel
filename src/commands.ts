@@ -12,6 +12,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: '/codex', description: 'codex 에게만 질문 — /codex [질문] (질문 없으면 전용 모드 전환)' },
   { name: '/gemini', description: 'gemini 에게만 질문 — /gemini [질문] (질문 없으면 전용 모드 전환)' },
   { name: '/all', description: '전용 모드 해제 — 다시 모든 도구에게 질문' },
+  { name: '/write', description: 'claude 파일 쓰기 권한 켜기 — 파일 생성·편집 자동 승인' },
+  { name: '/readonly', description: 'claude 파일 쓰기 권한 끄기 — 기본 읽기 전용으로 복귀' },
   { name: '/paste', description: '클립보드 이미지 첨부 — /paste [질문]' },
   { name: '/review', description: '교차 리뷰 — /review <리뷰어> <대상> 또는 /review all' },
   { name: '/exit', description: '종료 (별칭: /quit, /q)' },

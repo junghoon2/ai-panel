@@ -29,23 +29,34 @@ const BASE_ARGS = [
   // Q&A 패널에는 사용자 훅·MCP 서버가 불필요 — 로드 생략으로 기동 단축 (실측)
   '--strict-mcp-config',
   '--setting-sources', '',
-  // 헤드리스(-p) 모드에는 권한 승인 다이얼로그를 띄울 TTY 가 없어, default 면
-  // 파일 쓰기가 물어볼 곳 없이 거부된다. 파일 생성·편집은 자동 승인해 글 수정 등이
-  // 가능하게 한다. Bash·삭제 등 더 위험한 작업은 여전히 막힌다(acceptEdits 범위 밖).
-  '--permission-mode', 'acceptEdits',
 ];
+
+// 헤드리스(-p) 모드에는 권한 승인 다이얼로그를 띄울 TTY 가 없다.
+// 기본은 읽기 전용 — 권한 플래그 없이 두면 파일 쓰기는 물어볼 곳 없이 거부되고
+// 읽기(Read/Grep 등 권한 불필요 도구)만 동작한다.
+// /write 로 켜면 acceptEdits 를 붙여 파일 생성·편집을 자동 승인한다
+// (Bash·삭제 등 더 위험한 작업은 acceptEdits 범위 밖이라 여전히 막힌다).
 
 class ClaudeWorker {
   private child?: ChildProcessWithoutNullStreams;
   private lines?: AsyncIterator<string>;
   private sessionId?: string;
   private stderrTail = '';
+  private writeEnabled = false; // 기본 읽기 전용 — /write 로 켠다
+
+  /** 파일 쓰기 권한 토글. 변경되면 워커를 죽여 다음 질문에서 새 권한으로 resume 재기동한다. */
+  setWrite(on: boolean): void {
+    if (this.writeEnabled === on) return;
+    this.writeEnabled = on;
+    this.kill();
+  }
 
   /** 워커가 없으면 띄운다. 이전 세션이 있으면 --resume 으로 맥락을 복구한다. */
   start(resumeSessionId?: string): void {
     if (this.child) return;
 
     const args = [...BASE_ARGS];
+    if (this.writeEnabled) args.push('--permission-mode', 'acceptEdits');
     const sid = resumeSessionId ?? this.sessionId;
     if (sid) args.push('--resume', sid);
 
@@ -177,5 +188,6 @@ export const claudeAdapter: Adapter = {
   // 턴 중단 — 워커를 죽이면 진행 중이던 ask 루프가 종료 분기로 빠지고,
   // 다음 질문에서 마지막 세션을 --resume 해 맥락을 복구한다
   cancelActive: () => worker.kill(),
+  setWriteAccess: (on) => worker.setWrite(on),
   ask: (question, sessionId, images) => worker.ask(question, sessionId, images),
 };

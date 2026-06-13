@@ -28,6 +28,11 @@ export interface Adapter {
   dispose?(): void;
   /** 진행 중인 응답을 즉시 중단한다 (ESC 턴 취소용, 선택) */
   cancelActive?(): void;
+  /**
+   * 파일 쓰기 권한을 켜고 끈다 (지원하는 도구만 — 현재 claude).
+   * 변경되면 워커를 재기동해야 하므로, 다음 질문부터 새 권한이 적용된다.
+   */
+  setWriteAccess?(on: boolean): void;
 }
 
 /** unknown 에러를 사용자 표시용 문자열로 변환 */

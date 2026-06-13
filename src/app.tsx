@@ -5,6 +5,7 @@
 import { Box, Static, Text, useApp, useInput, useStdout } from 'ink';
 import { useEffect, useRef, useState } from 'react';
 import type { AdapterName } from './adapters/types.js';
+import { adapters } from './adapters/index.js';
 import {
   runTasks,
   type AgentTask,
@@ -48,6 +49,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [focus, setFocus] = useState<AdapterName | null>(null); // 특정 도구 전용 모드 (/claude 등)
+  const [claudeWrite, setClaudeWrite] = useState(false); // claude 파일 쓰기 권한 (/write 로 켬, 기본 읽기 전용)
   const [header, setHeader] = useState(''); // 상단 표시 (질문: ... / 리뷰: ...)
   const [notice, setNotice] = useState(''); // 명령 피드백 (오류·안내) 표시줄
   const [history, setHistory] = useState<HistoryEntry[]>([]); // 지나간 턴 (스크롤백 보존)
@@ -326,6 +328,23 @@ export function App({ tools, missing, initialQuestion }: Props) {
       return;
     }
 
+    // /write · /readonly — claude 파일 쓰기 권한 토글 (다음 질문부터 적용)
+    if (question === '/write' || question === '/readonly') {
+      if (!activeTools.includes('claude')) {
+        setNotice('claude CLI 가 미설치라 쓰기 권한을 바꿀 수 없습니다.');
+        return;
+      }
+      const on = question === '/write';
+      adapters.claude.setWriteAccess?.(on);
+      setClaudeWrite(on);
+      setNotice(
+        on
+          ? 'claude 파일 쓰기 권한 켜짐 — 다음 질문부터 파일 생성·편집을 자동 승인합니다 (/readonly 로 해제). /claude 전용 모드 권장.'
+          : 'claude 파일 쓰기 권한 꺼짐 — 읽기 전용으로 복귀했습니다.',
+      );
+      return;
+    }
+
     // /paste [질문] — 클립보드 이미지를 임시 파일로 꺼내 첨부 (파일 저장 없이)
     if (question === '/paste' || question.startsWith('/paste ')) {
       const image = clipboardImageToFile();
@@ -383,6 +402,13 @@ export function App({ tools, missing, initialQuestion }: Props) {
         {focus ? (
           <Text bold color="yellow">
             [{focus} 전용]
+          </Text>
+        ) : null}
+        {/* claude 쓰기 권한이 켜져 있으면 항상 보이게 — 파일이 수정될 수 있는 상태임을 경고 */}
+        {claudeWrite ? (
+          <Text bold color="red">
+            {' '}
+            [claude 쓰기]
           </Text>
         ) : null}
         <Text dimColor> {header || '질문을 입력하세요 (/exit 종료)'}</Text>
