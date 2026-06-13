@@ -37,8 +37,13 @@ function wrapLine(line: string, width: number): string[] {
   return out;
 }
 
+/** 표시 폭 기준으로 줄바꿈한 전체 줄 배열 (스크롤 계산용) */
+export function wrapToWidth(text: string, width: number): string[] {
+  if (width < 1) return [];
+  return text.split('\n').flatMap((line) => wrapLine(line, width));
+}
+
 export function tailLines(text: string, width: number, maxLines: number): string {
   if (width < 1 || maxLines < 1) return '';
-  const wrapped = text.split('\n').flatMap((line) => wrapLine(line, width));
-  return wrapped.slice(-maxLines).join('\n');
+  return wrapToWidth(text, width).slice(-maxLines).join('\n');
 }

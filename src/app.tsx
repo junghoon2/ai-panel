@@ -17,6 +17,7 @@ import { SLASH_COMMANDS } from './commands.js';
 import { extractImagePaths } from './image.js';
 import { clipboardImageToFile } from './clipboard.js';
 import { Panel, type PanelState } from './components/panel.js';
+import { wrapToWidth } from './text.js';
 import { PromptInput } from './components/prompt-input.js';
 import { HistoryBlock, type HistoryEntry } from './components/history.js';
 
@@ -50,6 +51,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const [header, setHeader] = useState(''); // 상단 표시 (질문: ... / 리뷰: ...)
   const [notice, setNotice] = useState(''); // 명령 피드백 (오류·안내) 표시줄
   const [history, setHistory] = useState<HistoryEntry[]>([]); // 지나간 턴 (스크롤백 보존)
+  const [scrollOffset, setScrollOffset] = useState(0); // 현재 턴 패널을 맨 아래(최신)에서 위로 거슬러 본 줄 수
   const [, setTick] = useState(0); // 강제 리렌더용
   const forceRender = () => setTick((t) => t + 1);
 
@@ -62,6 +64,12 @@ export function App({ tools, missing, initialQuestion }: Props) {
 
   // 질문을 실제로 보낼 도구 (미설치 제외)
   const activeTools = tools.filter((t) => !missing.includes(t));
+
+  const cols = stdout?.columns ?? 80;
+  const rows = stdout?.rows ?? 24;
+  // 패널 내부 표시 영역 계산 (테두리/패딩 근사 보정)
+  const panelInnerWidth = Math.max(10, Math.floor(cols / tools.length) - 4);
+  const panelInnerLines = Math.max(3, rows - 10); // 헤더1 + notice1 + 입력3 + 자동완성1 + 패널 테두리2 + 상태줄1 + 여유1
 
   // busy 동안 100ms 간격으로 리렌더 — 델타 배칭 + 경과 시간 갱신
   useEffect(() => {
@@ -112,11 +120,37 @@ export function App({ tools, missing, initialQuestion }: Props) {
   // 응답 생성 중 제출한 메시지 — 큐에 쌓아두고 턴이 끝나면 순서대로 자동 전송한다
   const queueRef = useRef<string[]>([]);
 
+  // 세 패널 중 가장 긴 응답 기준 스크롤 가능한 최대 줄 수 (현재 턴 텍스트 기준)
+  const maxScrollOffset = () =>
+    Math.max(
+      0,
+      ...activeTools.map(
+        (t) => wrapToWidth(panelsRef.current[t]?.text ?? '', panelInnerWidth).length - panelInnerLines,
+      ),
+    );
+  const scrollPage = Math.max(1, panelInnerLines - 1); // PageUp/Down 한 번에 거의 한 화면
+
   // Ctrl+C / ESC — Claude Code 와 동일한 동작:
   //   응답 중: 턴 중단 | 입력 있음: 입력 비우기 | 입력 없음(Ctrl+C): 2초 안에 한 번 더 → 종료
+  // PageUp/Down 은 세 패널을 함께 위/아래로 스크롤한다 (맨 아래 = 최신 응답 끝).
   useInput((char, key) => {
+    if (key.pageUp) {
+      setScrollOffset((o) => Math.min(maxScrollOffset(), o + scrollPage));
+      return;
+    }
+    if (key.pageDown) {
+      setScrollOffset((o) => Math.max(0, o - scrollPage));
+      return;
+    }
+
     const isCtrlC = key.ctrl && char === 'c';
     if (!isCtrlC && !key.escape) return;
+
+    // 위로 스크롤해 둔 상태면 Esc 는 먼저 최신(맨 아래)으로 복귀
+    if (key.escape && scrollOffset > 0) {
+      setScrollOffset(0);
+      return;
+    }
 
     if (busy) {
       controllerRef.current?.cancel();
@@ -152,6 +186,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const startTurn = (headerText: string, tasks: AgentTask[], recordAnswers: boolean) => {
     archivePreviousTurn();
     currentTurnToolsRef.current = tasks.map((t) => t.name);
+    setScrollOffset(0); // 새 턴은 항상 맨 아래(최신)에서 시작
     setNotice('');
     setHeader(headerText);
     setBusy(true);
@@ -332,12 +367,6 @@ export function App({ tools, missing, initialQuestion }: Props) {
     // eslint 없음 — busy 전이에만 반응하면 되고, submit 은 매 렌더 최신 클로저를 쓴다
   }, [busy]);
 
-  const cols = stdout?.columns ?? 80;
-  const rows = stdout?.rows ?? 24;
-  // 패널 내부 표시 영역 계산 (테두리/패딩 근사 보정)
-  const panelInnerWidth = Math.max(10, Math.floor(cols / tools.length) - 4);
-  const panelInnerLines = Math.max(3, rows - 10); // 헤더1 + notice1 + 입력3 + 자동완성1 + 패널 테두리2 + 상태줄1 + 여유1
-
   return (
     <>
       {/* 지나간 턴은 Static 으로 스크롤백에 남는다 — 위로 스크롤하면 이전 대화 확인 가능 */}
@@ -370,6 +399,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
             state={panelsRef.current[t]}
             innerLines={panelInnerLines}
             innerWidth={panelInnerWidth}
+            scrollOffset={scrollOffset}
           />
         ))}
       </Box>
