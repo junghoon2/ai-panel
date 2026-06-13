@@ -1,4 +1,4 @@
-// 도구별 답변 패널 — 상태 표시줄 + 스트리밍 텍스트(tail, PageUp/Down 으로 위로 거슬러 보기)
+// 도구별 답변 패널 — 상태 표시줄 + 스트리밍 텍스트(tail, Shift+↑↓ 로 위로 거슬러 보기)
 import { Box, Text } from 'ink';
 import { wrapToWidth } from '../text.js';
 
@@ -28,7 +28,7 @@ interface Props {
   innerLines: number;
   /** 패널 내부 텍스트 너비 (칸 수) */
   innerWidth: number;
-  /** 맨 아래(최신)에서 위로 거슬러 올라간 줄 수 — PageUp/Down 으로 세 패널 공통 조절 */
+  /** 맨 아래(최신)에서 위로 거슬러 올라간 줄 수 — Shift+↑↓ 로 세 패널 공통 조절 */
   scrollOffset: number;
 }
 

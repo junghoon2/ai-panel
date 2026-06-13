@@ -130,17 +130,18 @@ export function App({ tools, missing, initialQuestion }: Props) {
         (t) => wrapToWidth(panelsRef.current[t]?.text ?? '', panelInnerWidth).length - panelInnerLines,
       ),
     );
-  const scrollPage = Math.max(1, panelInnerLines - 1); // PageUp/Down 한 번에 거의 한 화면
+  const scrollPage = Math.max(1, panelInnerLines - 1); // Shift+↑↓ 한 번에 거의 한 화면
 
   // Ctrl+C / ESC — Claude Code 와 동일한 동작:
   //   응답 중: 턴 중단 | 입력 있음: 입력 비우기 | 입력 없음(Ctrl+C): 2초 안에 한 번 더 → 종료
-  // PageUp/Down 은 세 패널을 함께 위/아래로 스크롤한다 (맨 아래 = 최신 응답 끝).
+  // Shift+↑/↓ 는 세 패널을 함께 위/아래로 스크롤한다 (맨 아래 = 최신 응답 끝).
+  // 입력창의 단독 ↑↓(히스토리·줄이동)와 구분되며, prompt-input 은 Shift 조합을 무시한다.
   useInput((char, key) => {
-    if (key.pageUp) {
+    if (key.upArrow && key.shift) {
       setScrollOffset((o) => Math.min(maxScrollOffset(), o + scrollPage));
       return;
     }
-    if (key.pageDown) {
+    if (key.downArrow && key.shift) {
       setScrollOffset((o) => Math.max(0, o - scrollPage));
       return;
     }

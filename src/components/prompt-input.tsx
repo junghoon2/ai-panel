@@ -106,11 +106,12 @@ export function PromptInput({ value, busy, queuedCount, history, onChange, onSub
         complete(suggestions[sel].name);
         return;
       }
-      if (key.downArrow) {
+      // Shift+화살표는 패널 스크롤(상위 App) 전용 — 후보 선택에 쓰지 않는다
+      if (key.downArrow && !key.shift) {
         setSelected((sel + 1) % suggestions.length);
         return;
       }
-      if (key.upArrow) {
+      if (key.upArrow && !key.shift) {
         setSelected((sel - 1 + suggestions.length) % suggestions.length);
         return;
       }
@@ -185,6 +186,7 @@ export function PromptInput({ value, busy, queuedCount, history, onChange, onSub
       return;
     }
     if (key.upArrow) {
+      if (key.shift) return; // Shift+↑ 는 패널 스크롤 전용 — 입력창은 건드리지 않는다
       // 첫 줄이면 이전 질문 불러오기, 아니면 윗줄로 커서 이동
       const onFirstLine = !value.slice(0, cursor).includes('\n');
       if (onFirstLine) {
@@ -198,6 +200,7 @@ export function PromptInput({ value, busy, queuedCount, history, onChange, onSub
       return;
     }
     if (key.downArrow) {
+      if (key.shift) return; // Shift+↓ 는 패널 스크롤 전용 — 입력창은 건드리지 않는다
       // 히스토리 탐색 중 + 마지막 줄이면 다음 질문(또는 작성하던 내용)으로, 아니면 아랫줄 이동
       const onLastLine = !value.slice(cursor).includes('\n');
       if (onLastLine && histPos !== -1) {
@@ -251,7 +254,7 @@ export function PromptInput({ value, busy, queuedCount, history, onChange, onSub
             {queuedCount > 0 ? ` · 전송 대기 ${queuedCount}건` : ''}
           </Text>
         ) : (
-          <Text dimColor> 줄바꿈: \+Enter 또는 Option+Enter · PageUp/Down 응답 스크롤</Text>
+          <Text dimColor> 줄바꿈: \+Enter 또는 Option+Enter · Shift+↑↓ 응답 스크롤</Text>
         )}
       </Text>
     </Box>
