@@ -29,6 +29,10 @@ const BASE_ARGS = [
   // Q&A 패널에는 사용자 훅·MCP 서버가 불필요 — 로드 생략으로 기동 단축 (실측)
   '--strict-mcp-config',
   '--setting-sources', '',
+  // 헤드리스(-p) 모드에는 권한 승인 다이얼로그를 띄울 TTY 가 없어, default 면
+  // 파일 쓰기가 물어볼 곳 없이 거부된다. 파일 생성·편집은 자동 승인해 글 수정 등이
+  // 가능하게 한다. Bash·삭제 등 더 위험한 작업은 여전히 막힌다(acceptEdits 범위 밖).
+  '--permission-mode', 'acceptEdits',
 ];
 
 class ClaudeWorker {
