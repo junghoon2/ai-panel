@@ -14,13 +14,16 @@ import {
   type SessionMap,
 } from './orchestrator.js';
 import { buildReviewPrompt, parseReviewCommand } from './review.js';
-import { SLASH_COMMANDS } from './commands.js';
+import { SLASH_COMMANDS, parseWritePermissionIntent } from './commands.js';
 import { extractImagePaths } from './image.js';
 import { clipboardImageToFile } from './clipboard.js';
 import { Panel, type PanelState } from './components/panel.js';
 import { wrapToWidth } from './text.js';
 import { PromptInput } from './components/prompt-input.js';
 import { HistoryBlock, type HistoryEntry } from './components/history.js';
+
+// 파일 쓰기 권한을 지원하는 도구 — "/claude 쓰기 권한 추가해줘" 같은 요청의 토글 대상 (gemini 제외)
+const WRITE_CAPABLE_TOOLS: AdapterName[] = ['claude', 'codex'];
 
 interface Props {
   /** 패널로 표시할 전체 도구 (미설치 포함) */
@@ -49,7 +52,7 @@ export function App({ tools, missing, initialQuestion }: Props) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [focus, setFocus] = useState<AdapterName | null>(null); // 특정 도구 전용 모드 (/claude 등)
-  const [claudeWrite, setClaudeWrite] = useState(false); // claude 파일 쓰기 권한 (/write 로 켬, 기본 읽기 전용)
+  const [writeTools, setWriteTools] = useState<AdapterName[]>([]); // 쓰기 권한이 켜진 도구 (기본 전부 읽기 전용)
   const [header, setHeader] = useState(''); // 상단 표시 (질문: ... / 리뷰: ...)
   const [notice, setNotice] = useState(''); // 명령 피드백 (오류·안내) 표시줄
   const [history, setHistory] = useState<HistoryEntry[]>([]); // 지나간 턴 (스크롤백 보존)
@@ -318,6 +321,22 @@ export function App({ tools, missing, initialQuestion }: Props) {
         setNotice(`${toolCmd} 전용 모드 — 이후 질문이 ${toolCmd} 에게만 전송됩니다 (/all 로 해제)`);
         return;
       }
+      // "쓰기 권한 추가해줘" 등 권한 토글 요청은 질문 대신 권한 변경으로 처리 (claude·codex 만, gemini 제외)
+      if (WRITE_CAPABLE_TOOLS.includes(toolCmd)) {
+        const intent = parseWritePermissionIntent(rest);
+        if (intent !== null) {
+          adapters[toolCmd].setWriteAccess?.(intent);
+          setWriteTools((prev) =>
+            intent ? [...prev.filter((t) => t !== toolCmd), toolCmd] : prev.filter((t) => t !== toolCmd),
+          );
+          setNotice(
+            intent
+              ? `${toolCmd} 파일 쓰기 권한 켜짐 — 다음 질문부터 파일 생성·편집을 자동 승인합니다 ("${toolCmd} 쓰기 권한 해제"로 끄기).`
+              : `${toolCmd} 파일 쓰기 권한 꺼짐 — 읽기 전용으로 복귀했습니다.`,
+          );
+          return;
+        }
+      }
       sendQuestion([toolCmd], rest); // 이번 턴만 해당 도구에게
       return;
     }
@@ -326,23 +345,6 @@ export function App({ tools, missing, initialQuestion }: Props) {
     if (question === '/all') {
       setFocus(null);
       setNotice('전용 모드 해제 — 다시 모든 도구에게 질문합니다.');
-      return;
-    }
-
-    // /write · /readonly — claude 파일 쓰기 권한 토글 (다음 질문부터 적용)
-    if (question === '/write' || question === '/readonly') {
-      if (!activeTools.includes('claude')) {
-        setNotice('claude CLI 가 미설치라 쓰기 권한을 바꿀 수 없습니다.');
-        return;
-      }
-      const on = question === '/write';
-      adapters.claude.setWriteAccess?.(on);
-      setClaudeWrite(on);
-      setNotice(
-        on
-          ? 'claude 파일 쓰기 권한 켜짐 — 다음 질문부터 파일 생성·편집을 자동 승인합니다 (/readonly 로 해제). /claude 전용 모드 권장.'
-          : 'claude 파일 쓰기 권한 꺼짐 — 읽기 전용으로 복귀했습니다.',
-      );
       return;
     }
 
@@ -405,11 +407,11 @@ export function App({ tools, missing, initialQuestion }: Props) {
             [{focus} 전용]
           </Text>
         ) : null}
-        {/* claude 쓰기 권한이 켜져 있으면 항상 보이게 — 파일이 수정될 수 있는 상태임을 경고 */}
-        {claudeWrite ? (
+        {/* 쓰기 권한이 켜진 도구가 있으면 항상 보이게 — 파일이 수정될 수 있는 상태임을 경고 */}
+        {writeTools.length > 0 ? (
           <Text bold color="red">
             {' '}
-            [claude 쓰기]
+            [{writeTools.join('·')} 쓰기]
           </Text>
         ) : null}
         <Text dimColor> {header || '질문을 입력하세요 (/exit 종료)'}</Text>
