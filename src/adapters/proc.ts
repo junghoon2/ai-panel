@@ -76,3 +76,57 @@ export async function* spawnJsonl(
     if (child.exitCode === null && !spawnError) child.kill('SIGKILL');
   }
 }
+
+/**
+ * command 를 실행해 stdout 전체를 plain text 로 모아 한 번에 돌려준다.
+ * agy(Antigravity CLI) 처럼 스트리밍/JSONL 을 지원하지 않고 print 모드에서
+ * 완성된 텍스트만 내보내는 도구용. 종료/타임아웃/실행 실패 처리는 spawnJsonl 과 동일.
+ */
+export async function spawnText(
+  command: string,
+  args: string[],
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<string> {
+  const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  activeChildren.add(child);
+  child.once('close', () => activeChildren.delete(child));
+
+  let stdout = '';
+  child.stdout.on('data', (chunk: Buffer) => {
+    stdout += chunk.toString();
+  });
+
+  let stderrTail = '';
+  child.stderr.on('data', (chunk: Buffer) => {
+    stderrTail = (stderrTail + chunk.toString()).slice(-2000);
+  });
+
+  let spawnError: Error | undefined;
+  const closed = new Promise<number | null>((resolve) => {
+    child.once('close', (code) => resolve(code));
+    child.once('error', (err) => {
+      spawnError = err;
+      resolve(null);
+    });
+  });
+
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    child.kill('SIGKILL');
+  }, timeoutMs);
+
+  try {
+    const code = await closed;
+    if (spawnError) throw new Error(`${command} 실행 실패: ${spawnError.message}`);
+    if (timedOut) throw new Error(`${Math.round(timeoutMs / 1000)}초 타임아웃으로 중단됨`);
+    if (code !== 0) {
+      const detail = stderrTail.trim().split('\n').slice(-3).join(' ').slice(-300);
+      throw new Error(`종료 코드 ${code}${detail ? `: ${detail}` : ''}`);
+    }
+    return stdout;
+  } finally {
+    clearTimeout(timer);
+    if (child.exitCode === null && !spawnError) child.kill('SIGKILL');
+  }
+}
