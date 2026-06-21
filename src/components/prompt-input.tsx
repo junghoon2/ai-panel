@@ -254,7 +254,7 @@ export function PromptInput({ value, busy, queuedCount, history, onChange, onSub
             {queuedCount > 0 ? ` · 전송 대기 ${queuedCount}건` : ''}
           </Text>
         ) : (
-          <Text dimColor> 줄바꿈: \+Enter 또는 Option+Enter · Shift+↑↓ 응답 스크롤</Text>
+          <Text dimColor> 줄바꿈: Shift+Enter · Shift+↑↓ 응답 스크롤</Text>
         )}
       </Text>
     </Box>
